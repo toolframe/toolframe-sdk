@@ -169,6 +169,7 @@ async def run(entrypoint):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--entrypoint", required=True)
+    parser.add_argument("--host-token", help=argparse.SUPPRESS)
     args = parser.parse_args()
     asyncio.run(run(args.entrypoint))
 
