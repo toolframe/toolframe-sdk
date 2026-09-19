@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "toolframe-sdk"
+version = "0.1.0"
+description = "Public contracts and isolated worker runtime for Toolframe plugins"
+requires-python = ">=3.14"
+dependencies = ["pydantic>=2.12.5,<3", "jsonschema>=4.23,<5"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.12,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py314"
