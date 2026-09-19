@@ -16,6 +16,7 @@ from .contracts import (
     load_object,
     validate,
 )
+from .page import PageContext
 from .runtime import Plugin, RuntimeContext, StorageClient, call_context
 
 __version__ = "0.1.0"
@@ -25,6 +26,7 @@ __all__ = [
     "MethodSpec",
     "Migration",
     "OwnedResource",
+    "PageContext",
     "Plugin",
     "PluginDefinition",
     "PluginError",

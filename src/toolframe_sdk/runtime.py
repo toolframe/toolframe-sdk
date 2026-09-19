@@ -46,6 +46,7 @@ class RuntimeContext:
                 "method": method,
                 "params": params or {},
                 "root_id": info.get("root_id"),
+                "chain": info.get("chain", []),
             },
             timeout=remaining,
         )

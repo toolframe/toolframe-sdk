@@ -74,8 +74,12 @@ class Worker:
                 )
                 factory = load_object(self.definition.factory)
                 self.plugin = await resolve(factory(self.context))
-                await self.plugin.activate()
-                return await self.plugin.health()
+                token = call_context.set(params.get("context", {}))
+                try:
+                    await self.plugin.activate()
+                    return await self.plugin.health()
+                finally:
+                    call_context.reset(token)
         if not self.plugin:
             raise PluginError("not_active", "Worker is not active")
         if method == "runtime.invoke":
@@ -99,7 +103,11 @@ class Worker:
             finally:
                 call_context.reset(token)
         if method == "runtime.health":
-            health = await self.plugin.health()
+            token = call_context.set(params.get("context", {}))
+            try:
+                health = await self.plugin.health()
+            finally:
+                call_context.reset(token)
             if self.context.task_errors:
                 return {"runtime": "failed", "errors": list(self.context.task_errors)}
             return health
