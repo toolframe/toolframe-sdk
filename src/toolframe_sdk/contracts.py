@@ -37,7 +37,52 @@ class Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+SYSTEM_SCOPES = {
+    "system.plugins.read": "View plugin status and operations",
+    "system.plugins.manage": "Install and control plugins",
+    "system.migrations.manage": "Apply database migrations",
+    "system.settings.manage": "Change application access policy",
+    "system.auth.passwords": "Manage access passwords",
+}
+
+
+class ScopeSpec(Contract):
+    title: str
+    category: Literal["business", "system"] = "business"
+
+
+class AuthorizationSpec(Contract):
+    """Required even for infrastructure plugins with no visitor-facing services."""
+
+    scopes: dict[str, ScopeSpec] = Field(default_factory=dict)
+
+
+class Principal(Contract):
+    kind: Literal["local", "operator", "password", "anonymous", "public"]
+    credential_id: str | None = None
+    scopes: tuple[str, ...] = ()
+    all_business: bool = False
+    expires_at: float | None = None
+
+    @property
+    def unrestricted(self):
+        return self.kind in {"local", "operator"}
+
+    def allows(self, required, catalog):
+        return self.unrestricted or all(
+            scope in self.scopes
+            or (
+                self.all_business
+                and catalog.get(scope, {}).get("category") == "business"
+            )
+            for scope in required
+        )
+
+
 class MethodSpec(Contract):
+    audience: Literal["internal", "business", "system"]
+    required_scopes: tuple[str, ...] = ()
+    public_api: bool = False
     input_schema: dict[str, Any] = Field(default_factory=lambda: {"type": "object"})
     output_schema: dict[str, Any] = Field(default_factory=dict)
     description: str = ""
@@ -45,6 +90,14 @@ class MethodSpec(Contract):
 
     @model_validator(mode="after")
     def check_schemas(self):
+        if self.audience != "internal" and not self.required_scopes:
+            raise ValueError("Visitor-facing methods require explicit scopes")
+        if self.public_api and self.audience != "business":
+            raise ValueError("Only business methods may publish a public API")
+        if self.audience == "internal" and self.required_scopes:
+            raise ValueError(
+                "Internal methods use declared plugin dependencies, not visitor scopes"
+            )
         Draft202012Validator.check_schema(self.input_schema)
         Draft202012Validator.check_schema(self.output_schema)
         return self
@@ -65,6 +118,7 @@ class Resource(Contract):
     id: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
     kind: Literal["dashboard.page", "mcp.tool", "llms.document"]
     title: str = ""
+    required_scopes: tuple[str, ...] = ()
     data: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -123,8 +177,12 @@ class PluginDefinition(Contract):
     id: str = Field(pattern=r"^[a-z][a-z0-9-]{0,63}$")
     api_version: Literal[1] = PROTOCOL_VERSION
     factory: str
+    authorization: AuthorizationSpec
+    private_secrets: tuple[str, ...] = ()
     kind: Literal["business", "provider"] = "business"
-    provider_kind: Literal["storage", "dashboard", "mcp", "llms"] | None = None
+    provider_kind: (
+        Literal["storage", "dashboard", "mcp", "llms", "auth", "dashboard-auth"] | None
+    ) = None
     config_schema: dict[str, Any] = Field(
         default_factory=lambda: {
             "type": "object",
@@ -138,6 +196,40 @@ class PluginDefinition(Contract):
 
     @model_validator(mode="after")
     def check_definition(self):
+        import re
+
+        for name in self.private_secrets:
+            if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", name):
+                raise ValueError("Private secret names must be lowercase slugs")
+        for name, scope in self.authorization.scopes.items():
+            if name.startswith("system."):
+                raise ValueError("System privilege IDs are reserved by core")
+            if not name.startswith(self.id + ".") or not re.fullmatch(
+                r"[a-z][a-z0-9_.-]{0,127}", name
+            ):
+                raise ValueError(
+                    "Scope IDs must be namespaced by their owning plugin ID"
+                )
+            if self.kind == "business" and scope.category != "business":
+                raise ValueError("Business plugins cannot declare system privileges")
+        known = set(self.authorization.scopes) | set(SYSTEM_SCOPES)
+        for service in self.services.values():
+            for method in service.methods.values():
+                if not set(method.required_scopes) <= known:
+                    raise ValueError("Method references an undeclared scope")
+                for name in method.required_scopes:
+                    category = (
+                        self.authorization.scopes[name].category
+                        if name in self.authorization.scopes
+                        else "system"
+                    )
+                    if category != method.audience:
+                        raise ValueError("Method audience and scope category disagree")
+        for resource in self.resources:
+            if not set(resource.required_scopes) <= known:
+                raise ValueError("Resource references an undeclared scope")
+            if resource.kind == "dashboard.page" and not resource.required_scopes:
+                raise ValueError("Dashboard pages require explicit scopes")
         if ":" not in self.factory:
             raise ValueError("Factory must be module:attribute")
         if (self.kind == "provider") != (self.provider_kind is not None):

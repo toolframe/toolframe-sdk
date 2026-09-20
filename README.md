@@ -9,6 +9,28 @@ One wheel exports one `toolframe.plugins` entry point whose value is a
 Services exchange validated JSON; page/tool/document declarations are owned by
 their business package. Activation and resource publication are separate phases.
 
+SDK 0.2 requires `authorization=AuthorizationSpec(...)` on every definition,
+including an empty declaration on infrastructure providers. Business scopes are
+namespaced by plugin ID (`notes.read`, `notes.write`). Every `MethodSpec` declares
+`audience="business"|"system"|"internal"`; business/system methods require matching
+scopes. Internal services are available only through admitted plugin dependencies.
+Legacy definitions without this declaration fail validation.
+
+Dashboard resources declare `required_scopes`. `PageContext.can(scope)` is for UI
+controls; core separately enforces all method requirements using its trusted
+browser context. `service.call(..., activity=False)` marks polling so it does not
+renew sessions or update last use. Nested calls retain the root's admitted actor
+and scope catalog. Do not construct browser principals in plugin code.
+
+`public_api=True` explicitly publishes a business method through core's public
+HTTP API. MCP tool declarations also publish their business target. Neither uses
+Dashboard password scopes; internal/system methods cannot be public. `read_only`
+describes side effects, not publication or permission.
+
+Plugins may declare stable `private_secrets` names. Core delivers their retained
+keys through `RuntimeContext.private_secrets`, independently of configuration and
+the database. Keys do not belong in descriptors, config, health, logs or output.
+
 Workers run with `python -m toolframe_sdk.worker --entrypoint package.module:plugin`.
 Stdin/stdout carry bounded JSON-RPC 2.0; logs and ordinary prints go to stderr.
 The reader dispatches concurrently so a service handler can await a nested host

@@ -27,7 +27,12 @@ async def test_native_page_bridge_uses_owning_resource_and_epoch():
     assert received == [
         (
             ("example/dashboard.page/main", "example.rows@1/list", {"limit": 1}),
-            {"epoch": "epoch-1", "timeout": 30},
+            {
+                "epoch": "epoch-1",
+                "timeout": 30,
+                "access_context": None,
+                "activity": True,
+            },
         )
     ]
     with pytest.raises(PluginError, match="script thread"):

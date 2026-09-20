@@ -7,7 +7,7 @@ from toolframe_sdk.rpc import RpcPeer
 
 async def test_real_worker_describes_validates_and_cleans_up_on_eof(tmp_path):
     (tmp_path / "fixture_plugin.py").write_text("""
-from toolframe_sdk import Plugin, PluginDefinition, ServiceSpec, MethodSpec
+from toolframe_sdk import AuthorizationSpec, ScopeSpec, Plugin, PluginDefinition, ServiceSpec, MethodSpec
 print("library stdout is a log")
 class Example(Plugin):
     async def invoke(self, service, method, params):
@@ -16,9 +16,9 @@ class Example(Plugin):
         from pathlib import Path
         Path(self.context.config["marker"]).write_text("disposed")
         await super().dispose()
-plugin = PluginDefinition(id="example", factory="fixture_plugin:Example",
+plugin = PluginDefinition(authorization=AuthorizationSpec(), id="example", factory="fixture_plugin:Example",
     config_schema={"type":"object"},
-    services={"example":ServiceSpec(methods={"run":MethodSpec()})})
+    services={"example":ServiceSpec(methods={"run":MethodSpec(audience="internal", )})})
 """)
     process = await asyncio.create_subprocess_exec(
         sys.executable,

@@ -3,13 +3,17 @@
 from .contracts import (
     MAX_FRAME_BYTES,
     PROTOCOL_VERSION,
+    SYSTEM_SCOPES,
+    AuthorizationSpec,
     MethodSpec,
     Migration,
     OwnedResource,
     PluginDefinition,
     PluginError,
+    Principal,
     Requirement,
     Resource,
+    ScopeSpec,
     ServiceSpec,
     StoreSchema,
     digest,
@@ -19,10 +23,12 @@ from .contracts import (
 from .page import PageContext
 from .runtime import Plugin, RuntimeContext, StorageClient, call_context
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "MAX_FRAME_BYTES",
     "PROTOCOL_VERSION",
+    "SYSTEM_SCOPES",
+    "AuthorizationSpec",
     "MethodSpec",
     "Migration",
     "OwnedResource",
@@ -30,9 +36,11 @@ __all__ = [
     "Plugin",
     "PluginDefinition",
     "PluginError",
+    "Principal",
     "Requirement",
     "Resource",
     "RuntimeContext",
+    "ScopeSpec",
     "ServiceSpec",
     "StorageClient",
     "StoreSchema",

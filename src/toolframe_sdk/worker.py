@@ -71,6 +71,7 @@ class Worker:
                     generation=params["generation"],
                     config=params.get("config"),
                     state_directory=params.get("state_directory"),
+                    private_secrets=params.get("private_secrets"),
                 )
                 factory = load_object(self.definition.factory)
                 self.plugin = await resolve(factory(self.context))

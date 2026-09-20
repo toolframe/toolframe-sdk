@@ -19,11 +19,19 @@ call_context: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
 
 class RuntimeContext:
     def __init__(
-        self, peer, *, plugin_id, generation, config=None, state_directory=None
+        self,
+        peer,
+        *,
+        plugin_id,
+        generation,
+        config=None,
+        state_directory=None,
+        private_secrets=None,
     ):
         self.peer, self.plugin_id, self.generation = peer, plugin_id, generation
         self.config = config or {}
         self.state_directory = state_directory
+        self.private_secrets = private_secrets or {}
         self.tasks: set[asyncio.Task] = set()
         self.ready = asyncio.Event()
         self.task_errors: list[str] = []
@@ -51,7 +59,17 @@ class RuntimeContext:
             timeout=remaining,
         )
 
-    async def resource_call(self, key, method, params=None, *, epoch, timeout=30):
+    async def resource_call(
+        self,
+        key,
+        method,
+        params=None,
+        *,
+        epoch,
+        timeout=30,
+        access_context=None,
+        activity=True,
+    ):
         return await self.peer.request(
             "resource.call",
             {
@@ -59,13 +77,30 @@ class RuntimeContext:
                 "method": method,
                 "params": params or {},
                 "epoch": epoch,
+                "access_context": access_context,
+                "activity": activity,
             },
             timeout=timeout,
         )
 
-    async def manage(self, action, params=None):
+    async def manage(self, action, params=None, *, access_context=None):
         return await self.peer.request(
-            "management.call", {"action": action, "params": params or {}}
+            "management.call",
+            {
+                "action": action,
+                "params": params or {},
+                "access_context": access_context,
+            },
+        )
+
+    async def access(self, action, params=None, *, access_context=None):
+        return await self.peer.request(
+            "access.call",
+            {
+                "action": action,
+                "params": params or {},
+                "access_context": access_context,
+            },
         )
 
     def storage(self, alias="storage"):

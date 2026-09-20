@@ -2,9 +2,14 @@ import pytest
 from pydantic import ValidationError
 
 from toolframe_sdk import (
+    AuthorizationSpec,
+    MethodSpec,
     Migration,
     PluginDefinition,
+    Principal,
     Resource,
+    ScopeSpec,
+    ServiceSpec,
     StoreSchema,
     digest,
     validate,
@@ -15,10 +20,14 @@ def test_definition_round_trip_and_owned_identity():
     definition = PluginDefinition(
         id="example",
         factory="example:Plugin",
+        authorization=AuthorizationSpec(
+            scopes={"example.read": ScopeSpec(title="Read")}
+        ),
         resources=(
             Resource(
                 id="main",
                 kind="dashboard.page",
+                required_scopes=("example.read",),
                 data={"entrypoint": "example.ui:render"},
             ),
         ),
@@ -28,7 +37,10 @@ def test_definition_round_trip_and_owned_identity():
     )
     with pytest.raises(ValidationError, match="Duplicate"):
         PluginDefinition(
-            id="example", factory="example:Plugin", resources=definition.resources * 2
+            id="example",
+            factory="example:Plugin",
+            authorization=definition.authorization,
+            resources=definition.resources * 2,
         )
 
 
@@ -57,3 +69,60 @@ def test_migration_history_and_content_identity():
 def test_non_finite_data_is_not_json_even_with_open_schema():
     with pytest.raises(ValueError):
         validate({}, {"value": float("nan")})
+
+
+def test_legacy_definition_and_implicit_method_access_are_rejected():
+    with pytest.raises(ValidationError, match="authorization"):
+        PluginDefinition(id="old", factory="old:Plugin")
+    with pytest.raises(ValidationError, match="audience"):
+        MethodSpec()
+
+
+@pytest.mark.parametrize("scope", ["other.read", "system.plugins.manage"])
+def test_scopes_cannot_impersonate_other_owners(scope):
+    with pytest.raises(ValidationError):
+        PluginDefinition(
+            id="example",
+            factory="example:Plugin",
+            authorization=AuthorizationSpec(scopes={scope: ScopeSpec(title="Bad")}),
+        )
+
+
+def test_system_and_internal_services_cannot_publish_public_apis():
+    for audience in ("internal", "system"):
+        with pytest.raises(ValidationError):
+            MethodSpec(
+                audience=audience,
+                required_scopes=("system.plugins.manage",),
+                public_api=True,
+            )
+    with pytest.raises(ValidationError, match="undeclared scope"):
+        PluginDefinition(
+            id="example",
+            factory="example:Plugin",
+            authorization=AuthorizationSpec(),
+            services={
+                "example.api": ServiceSpec(
+                    methods={
+                        "read": MethodSpec(
+                            audience="business", required_scopes=("example.read",)
+                        )
+                    }
+                )
+            },
+        )
+
+
+def test_dynamic_business_grants_follow_catalog_without_system_escalation():
+    dynamic = Principal(kind="password", all_business=True)
+    explicit = Principal(kind="password", scopes=("notes.read",))
+    catalog = {
+        "notes.read": {"category": "business"},
+        "future.write": {"category": "business"},
+        "system.plugins.manage": {"category": "system"},
+    }
+    assert dynamic.allows(["future.write"], catalog)
+    assert not explicit.allows(["future.write"], catalog)
+    assert not dynamic.allows(["system.plugins.manage"], catalog)
+    catalog["future.write"]["category"] = "system"
+    assert not dynamic.allows(["future.write"], catalog)

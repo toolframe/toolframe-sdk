@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "toolframe-sdk"
-version = "0.1.0"
+version = "0.2.0"
 description = "Public contracts and isolated worker runtime for Toolframe plugins"
 requires-python = ">=3.14"
 dependencies = ["pydantic>=2.12.5,<3", "jsonschema>=4.23,<5"]
