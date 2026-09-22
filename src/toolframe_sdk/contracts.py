@@ -43,6 +43,7 @@ SYSTEM_SCOPES = {
     "system.migrations.manage": "Apply database migrations",
     "system.settings.manage": "Change application access policy",
     "system.auth.passwords": "Manage access passwords",
+    "system.auth.mcp_keys": "Manage MCP bearer keys",
 }
 
 
@@ -58,7 +59,7 @@ class AuthorizationSpec(Contract):
 
 
 class Principal(Contract):
-    kind: Literal["local", "operator", "password", "anonymous", "public"]
+    kind: Literal["local", "operator", "password", "mcp_key", "anonymous", "public"]
     credential_id: str | None = None
     scopes: tuple[str, ...] = ()
     all_business: bool = False
@@ -181,7 +182,10 @@ class PluginDefinition(Contract):
     private_secrets: tuple[str, ...] = ()
     kind: Literal["business", "provider"] = "business"
     provider_kind: (
-        Literal["storage", "dashboard", "mcp", "llms", "auth", "dashboard-auth"] | None
+        Literal[
+            "storage", "dashboard", "mcp", "llms", "auth", "dashboard-auth", "mcp-auth"
+        ]
+        | None
     ) = None
     config_schema: dict[str, Any] = Field(
         default_factory=lambda: {
