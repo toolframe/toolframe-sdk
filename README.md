@@ -4,6 +4,14 @@ Public package definitions, service/resource contracts, scoped storage clients a
 the isolated Python worker protocol. Core and providers depend on this package;
 it imports neither core nor Streamlit/FastMCP.
 
+The optional `oidc-auth` provider kind supplies shared authentication adapters.
+`Principal(kind="user")` identifies an admitted local user through `user_id`;
+`kind="delegated"` binds business scopes to `user_id`, `client_id`, `grant_id`,
+`resource` and expiry. Neither kind has implicit operator authority. Core checks
+these bindings at admission. `system.auth.users` controls user administration;
+`system.auth.self` controls the current user's connections. Business plugins keep
+declaring scopes normally and do not validate OIDC tokens themselves.
+
 One wheel exports one `toolframe.plugins` entry point whose value is a
 `PluginDefinition`. Its factory creates a `Plugin` with a `RuntimeContext`.
 Services exchange validated JSON; page/tool/document declarations are owned by

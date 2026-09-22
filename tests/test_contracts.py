@@ -126,3 +126,24 @@ def test_dynamic_business_grants_follow_catalog_without_system_escalation():
     assert not dynamic.allows(["system.plugins.manage"], catalog)
     catalog["future.write"]["category"] = "system"
     assert not dynamic.allows(["future.write"], catalog)
+
+
+@pytest.mark.parametrize("kind", ["user", "delegated"])
+def test_federated_principals_have_only_explicit_authority(kind):
+    actor = Principal(
+        kind=kind,
+        user_id="user",
+        client_id="agent",
+        grant_id="grant",
+        resource="https://app.example/mcp",
+        scopes=("notes.read",),
+    )
+    catalog = {
+        "notes.read": {"category": "business"},
+        "notes.write": {"category": "business"},
+        "system.auth.users": {"category": "system"},
+    }
+    assert not actor.unrestricted
+    assert actor.allows(["notes.read"], catalog)
+    assert not actor.allows(["notes.write"], catalog)
+    assert not actor.allows(["system.auth.users"], catalog)

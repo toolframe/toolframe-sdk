@@ -44,6 +44,8 @@ SYSTEM_SCOPES = {
     "system.settings.manage": "Change application access policy",
     "system.auth.passwords": "Manage access passwords",
     "system.auth.mcp_keys": "Manage MCP bearer keys",
+    "system.auth.users": "Manage federated users and their permissions",
+    "system.auth.self": "View and revoke your connected agents",
 }
 
 
@@ -59,8 +61,21 @@ class AuthorizationSpec(Contract):
 
 
 class Principal(Contract):
-    kind: Literal["local", "operator", "password", "mcp_key", "anonymous", "public"]
+    kind: Literal[
+        "local",
+        "operator",
+        "password",
+        "mcp_key",
+        "user",
+        "delegated",
+        "anonymous",
+        "public",
+    ]
     credential_id: str | None = None
+    user_id: str | None = None
+    client_id: str | None = None
+    grant_id: str | None = None
+    resource: str | None = None
     scopes: tuple[str, ...] = ()
     all_business: bool = False
     expires_at: float | None = None
@@ -183,7 +198,14 @@ class PluginDefinition(Contract):
     kind: Literal["business", "provider"] = "business"
     provider_kind: (
         Literal[
-            "storage", "dashboard", "mcp", "llms", "auth", "dashboard-auth", "mcp-auth"
+            "storage",
+            "dashboard",
+            "mcp",
+            "llms",
+            "auth",
+            "dashboard-auth",
+            "mcp-auth",
+            "oidc-auth",
         ]
         | None
     ) = None
