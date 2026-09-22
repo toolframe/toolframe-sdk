@@ -37,3 +37,7 @@ The reader dispatches concurrently so a service handler can await a nested host
 call. A lost control pipe closes the worker and its managed resources.
 
 Install development dependencies with `uv sync --group dev`, then run `uv run pytest`.
+
+## License
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
