@@ -38,6 +38,10 @@ call. A lost control pipe closes the worker and its managed resources.
 
 Install development dependencies with `uv sync --group dev`, then run `uv run pytest`.
 
+For the isolated CI checks and manual TestPyPI/PyPI publishing setup, see
+[CI and publishing](docs/ci.md). Run `bash scripts/validate.sh` to lint, test,
+build and verify a fresh wheel installation locally.
+
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

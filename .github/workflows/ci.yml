@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Keep concurrency out of this reusable workflow so a publish caller cannot
+# cancel itself or lose the validation artifacts it is waiting for.
+jobs:
+  validate:
+    name: Python 3.14.7 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - name: Check out the triggering revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14.7'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: '0.12.8'
+          enable-cache: false
+      - name: Lint, test, build and install the distributions
+        shell: bash
+        run: bash scripts/validate.sh "$RUNNER_TEMP/sdk-dist"
+      - name: Save validated distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-distributions-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/sdk-dist/*.whl
+            ${{ runner.temp }}/sdk-dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
