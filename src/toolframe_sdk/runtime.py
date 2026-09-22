@@ -103,6 +103,12 @@ class RuntimeContext:
             },
         )
 
+    async def mcp_access(self, access_context):
+        """Resolve a core-issued MCP request credential; MCP providers only."""
+        return await self.peer.request(
+            "mcp.access", {"access_context": access_context}, timeout=30
+        )
+
     def storage(self, alias="storage"):
         return StorageClient(self, alias)
 

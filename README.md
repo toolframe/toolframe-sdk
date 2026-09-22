@@ -27,6 +27,14 @@ HTTP API. MCP tool declarations also publish their business target. Neither uses
 Dashboard password scopes; internal/system methods cannot be public. `read_only`
 describes side effects, not publication or permission.
 
+MCP uses core's independent public/protected access policy. The `mcp-auth`
+provider kind supplies internal credential decisions; an `mcp_key` principal has
+fixed business scopes and no implicit operator authority. `system.auth.mcp_keys`
+controls administration. MCP providers resolve core-issued request credentials
+with `RuntimeContext.mcp_access(access_context)` and pass the same reference to
+`resource_call(..., access_context=...)`. Core validates it again at tool admission;
+providers must never construct caller principals or accept client-supplied context.
+
 Plugins may declare stable `private_secrets` names. Core delivers their retained
 keys through `RuntimeContext.private_secrets`, independently of configuration and
 the database. Keys do not belong in descriptors, config, health, logs or output.
