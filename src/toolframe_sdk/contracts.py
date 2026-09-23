@@ -204,6 +204,7 @@ class PluginDefinition(Contract):
     factory: str
     authorization: AuthorizationSpec
     private_secrets: tuple[str, ...] = ()
+    runtime_validation: Literal["scratch", "separate_application"] = "scratch"
     kind: Literal["business", "provider"] = "business"
     provider_kind: (
         Literal[
