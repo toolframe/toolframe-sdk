@@ -165,10 +165,19 @@ class Migration(Contract):
     revision: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     parent: str | None = None
     sql: str
+    dialects: dict[Literal["postgresql"], str] = Field(default_factory=dict)
 
     @property
     def checksum(self) -> str:
         return hashlib.sha256(self.sql.encode()).hexdigest()
+
+    def for_dialect(self, dialect: str) -> Migration:
+        """Select SQL before hashing; legacy SQLite histories remain unchanged."""
+        if dialect == "sqlite":
+            return self.model_copy(update={"dialects": {}})
+        if dialect not in self.dialects:
+            raise ValueError(f"Migration {self.revision} does not support {dialect}")
+        return self.model_copy(update={"sql": self.dialects[dialect], "dialects": {}})
 
 
 class StoreSchema(Contract):

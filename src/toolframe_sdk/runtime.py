@@ -178,6 +178,19 @@ class StorageClient:
             self.alias, "receipt", {"mutation_id": mutation_id}
         )
 
+    async def execute_returning(self, sql, parameters=(), *, mutation_id=None):
+        """Execute a mutation with RETURNING, preserving transaction/receipt identity."""
+        return await self.context.call(
+            self.alias,
+            "execute_returning",
+            {
+                "sql": sql,
+                "parameters": list(parameters),
+                "transaction": self.token,
+                "mutation_id": mutation_id or uuid.uuid4().hex,
+            },
+        )
+
     @asynccontextmanager
     async def transaction(self, *, mutation_id=None):
         if self.token:

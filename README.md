@@ -61,3 +61,6 @@ build and verify a fresh wheel installation locally.
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+For PostgreSQL migration variants and generated identifiers in SDK 0.3, see
+[portable plugin storage](docs/storage.md).

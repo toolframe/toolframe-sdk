@@ -71,8 +71,8 @@ for the setup and isolated build pattern.
 
 `publish.yml` supports only manual dispatch. Select `repository=testpypi`
 (the default) or `repository=pypi` and run it **on an existing tag** exactly equal
-to `v<project.version>`. For the current version, that is `v0.2.0`.
-A branch named `v0.2.0`, a plain `0.2.0` tag or a different version all fail the
+to `v<project.version>`. For the current version, that is `v0.3.0`.
+A branch named `v0.3.0`, a plain `0.3.0` tag or a different version all fail the
 release guard before validation and upload.
 
 The workflow checks out the dispatch SHA, validates the tag against
@@ -111,8 +111,8 @@ Required external setup before a future upload:
    For example, once the remote and tag exist, the future dispatch commands are:
 
    ```sh
-   gh workflow run publish.yml --ref v0.2.0 -f repository=testpypi
-   gh workflow run publish.yml --ref v0.2.0 -f repository=pypi
+   gh workflow run publish.yml --ref v0.3.0 -f repository=testpypi
+   gh workflow run publish.yml --ref v0.3.0 -f repository=pypi
    ```
 
 Creating these files and running local checks does not create repositories,

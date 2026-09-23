@@ -23,7 +23,7 @@ from .contracts import (
 from .page import PageContext
 from .runtime import Plugin, RuntimeContext, StorageClient, call_context
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = [
     "MAX_FRAME_BYTES",
     "PROTOCOL_VERSION",
