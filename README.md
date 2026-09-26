@@ -52,6 +52,11 @@ Stdin/stdout carry bounded JSON-RPC 2.0; logs and ordinary prints go to stderr.
 The reader dispatches concurrently so a service handler can await a nested host
 call. A lost control pipe closes the worker and its managed resources.
 
+
+Binary images and attachments use `RuntimeContext.object_store()` and the internal
+`toolframe.object_store` v1 service. See [object storage](docs/object-storage.md)
+for chunked transfers, ownership, limits and provider authoring.
+
 Install development dependencies with `uv sync --group dev`, then run `uv run pytest`.
 
 For the isolated CI checks and manual TestPyPI/PyPI publishing setup, see
