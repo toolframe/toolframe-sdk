@@ -45,9 +45,11 @@ class _ClosingExporter(SpanExporter):
 class Tracing:
     """A process-owned provider and the RPC/HTTP instrumentation that uses it."""
 
-    def __init__(self, provider, exporter=None):
+    def __init__(self, provider, exporter=None, logs=None):
         self.provider = provider
         self.exporter = exporter
+        self.logs = logs
+        self.closed = False
         self.tracer = provider.get_tracer("toolframe", __version__)
         self.propagator = TraceContextTextMapPropagator()
         self.environment = {
@@ -138,10 +140,28 @@ class Tracing:
         span.set_attribute("error.type", category[:128])
         span.set_status(Status(StatusCode.ERROR))
 
+    @staticmethod
+    def log_correlation():
+        context = trace.get_current_span().get_span_context()
+        if not context.is_valid:
+            return {}
+        return {
+            "trace_id": f"{context.trace_id:032x}",
+            "span_id": f"{context.span_id:016x}",
+        }
+
     def shutdown(self):
+        if self.closed:
+            return
+        self.closed = True
+        deadline = time.monotonic() + 2
         if self.exporter:
-            self.exporter.deadline = time.monotonic() + 2
+            self.exporter.deadline = deadline
+        if self.logs:
+            self.logs.exporter.deadline = deadline
         self.provider.shutdown()
+        if self.logs:
+            self.logs.shutdown()
 
 
 def create_tracing(service_name, attributes, *, install_global=False):
@@ -192,15 +212,35 @@ def create_tracing(service_name, attributes, *, install_global=False):
             **attributes,
         }
     )
-    provider = TracerProvider(resource=resource, shutdown_on_exit=False)
-    exporter = _ClosingExporter(OTLPSpanExporter(timeout=timeout))
-    processor = BatchSpanProcessor(
-        exporter,
-        max_queue_size=queue,
-        max_export_batch_size=batch,
-        schedule_delay_millis=delay,
-    )
-    provider.add_span_processor(processor)
+    logs_exporter = os.environ.get("OTEL_LOGS_EXPORTER", "none").strip().lower()
+    if logs_exporter not in {"", "none", "otlp"}:
+        raise PluginError(
+            "logging_config_invalid", "OTEL_LOGS_EXPORTER must be none or otlp"
+        )
+    logs = None
+    if logs_exporter == "otlp":
+        from ._logging import create_logs
+
+        logs = create_logs(resource)
+    provider, exporter = None, None
+    try:
+        exporter = _ClosingExporter(OTLPSpanExporter(timeout=timeout))
+        provider = TracerProvider(resource=resource, shutdown_on_exit=False)
+        processor = BatchSpanProcessor(
+            exporter,
+            max_queue_size=queue,
+            max_export_batch_size=batch,
+            schedule_delay_millis=delay,
+        )
+        provider.add_span_processor(processor)
+    except BaseException:
+        if provider:
+            provider.shutdown()
+        if exporter:
+            exporter.shutdown()
+        if logs:
+            logs.shutdown()
+        raise
     if install_global:
         trace.set_tracer_provider(provider)
-    return Tracing(provider, exporter)
+    return Tracing(provider, exporter, logs)

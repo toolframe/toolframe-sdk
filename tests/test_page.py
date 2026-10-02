@@ -2,7 +2,13 @@ import asyncio
 
 import pytest
 
-from toolframe_sdk import OwnedResource, PageContext, PluginError, Resource
+from toolframe_sdk import (
+    OwnedResource,
+    PageContext,
+    PluginError,
+    Resource,
+    RuntimeContext,
+)
 
 
 async def test_native_page_bridge_uses_owning_resource_and_epoch():
@@ -20,7 +26,10 @@ async def test_native_page_bridge_uses_owning_resource_and_epoch():
             id="main", kind="dashboard.page", data={"entrypoint": "example:render"}
         ),
     )
-    context = PageContext(Runtime(), resource, "epoch-1", asyncio.get_running_loop())
+    runtime = Runtime()
+    runtime.log = RuntimeContext(None, plugin_id="dashboard", generation="d1").log
+    context = PageContext(runtime, resource, "epoch-1", asyncio.get_running_loop())
+    assert context.log.extra["toolframe.page.owner"] == resource.owner
     service = context.services.require("example.rows")
     result = await asyncio.to_thread(service.call, "list", {"limit": 1})
     assert result == {"rows": [1]}

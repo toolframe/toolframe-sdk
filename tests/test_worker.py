@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import sys
 
@@ -11,6 +12,7 @@ from toolframe_sdk import AuthorizationSpec, ScopeSpec, Plugin, PluginDefinition
 print("library stdout is a log")
 class Example(Plugin):
     async def invoke(self, service, method, params):
+        self.log.info("Calling dependency", extra={"number": params["number"]})
         return {"value": await self.context.call("dependency", "double", params)}
     async def dispose(self):
         from pathlib import Path
@@ -57,7 +59,16 @@ plugin = PluginDefinition(authorization=AuthorizationSpec(), id="example", facto
         process.stdin.close()
         await asyncio.wait_for(process.wait(), 5)
         assert (tmp_path / "closed").read_text() == "disposed"
-        assert b"library stdout is a log" in await process.stderr.read()
+        stderr = (await process.stderr.read()).decode().splitlines()
+        assert "library stdout is a log" in stderr
+        logs = [json.loads(line) for line in stderr if line.startswith("{")]
+        call = next(log for log in logs if log["message"] == "Calling dependency")
+        assert call["attributes"]["toolframe.plugin.id"] == "example"
+        assert call["attributes"]["toolframe.plugin.generation"] == "g1"
+        assert call["attributes"]["toolframe.service.name"] == "example"
+        assert call["attributes"]["toolframe.method.name"] == "run"
+        assert call["attributes"]["toolframe.root.id"] == "r1"
+        assert call["attributes"]["code.function.name"] == "invoke"
         assert process.returncode == 0
     finally:
         await peer.close()

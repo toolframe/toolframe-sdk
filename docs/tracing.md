@@ -48,6 +48,10 @@ not fail service calls. Shutdown performs a bounded best-effort drain; queued
 spans can be lost on timeout or process termination. No collector or durable
 telemetry spool is included in the SDK.
 
+[Plugin logging](logging.md) uses the same process identity and active trace
+context. Its OTLP exporter is separately opt-in; local context loggers work with
+tracing disabled.
+
 `tests/test_tracing.py` verifies propagation, concurrent nested requests, sampling,
 failures, cancellation, task roots and disabled imports. The isolated wheel smoke
 test verifies that a base SDK install has no OpenTelemetry dependency.

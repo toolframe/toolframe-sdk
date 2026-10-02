@@ -8,7 +8,7 @@ from .contracts import PluginError
 
 _worker_tracing = None
 
-# Forward only configuration consumed by the trace runtime. Build/preflight
+# Forward only configuration consumed by the telemetry runtime. Build/preflight
 # processes must not receive exporter credentials or activate instrumentation.
 TRACE_ENVIRONMENT = frozenset(
     {
@@ -28,6 +28,21 @@ TRACE_ENVIRONMENT = frozenset(
         "OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE",
         "OTEL_EXPORTER_OTLP_TRACES_COMPRESSION",
         "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+        "OTEL_LOGS_EXPORTER",
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT",
+        "OTEL_EXPORTER_OTLP_LOGS_HEADERS",
+        "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT",
+        "OTEL_EXPORTER_OTLP_LOGS_CERTIFICATE",
+        "OTEL_EXPORTER_OTLP_LOGS_CLIENT_KEY",
+        "OTEL_EXPORTER_OTLP_LOGS_CLIENT_CERTIFICATE",
+        "OTEL_EXPORTER_OTLP_LOGS_COMPRESSION",
+        "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL",
+        "OTEL_BLRP_MAX_QUEUE_SIZE",
+        "OTEL_BLRP_MAX_EXPORT_BATCH_SIZE",
+        "OTEL_BLRP_SCHEDULE_DELAY",
+        "OTEL_LOGRECORD_ATTRIBUTE_COUNT_LIMIT",
+        "OTEL_LOGRECORD_ATTRIBUTE_VALUE_LENGTH_LIMIT",
+        "TOOLFRAME_LOGS_LEVEL",
         "OTEL_TRACES_SAMPLER",
         "OTEL_TRACES_SAMPLER_ARG",
         "OTEL_RESOURCE_ATTRIBUTES",

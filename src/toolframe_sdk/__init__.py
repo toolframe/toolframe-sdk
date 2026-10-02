@@ -20,6 +20,7 @@ from .contracts import (
     load_object,
     validate,
 )
+from .logging import ContextLogger
 from .page import PageContext
 from .runtime import Plugin, RuntimeContext, StorageClient, call_context
 
@@ -29,6 +30,7 @@ __all__ = [
     "PROTOCOL_VERSION",
     "SYSTEM_SCOPES",
     "AuthorizationSpec",
+    "ContextLogger",
     "MethodSpec",
     "Migration",
     "OwnedResource",

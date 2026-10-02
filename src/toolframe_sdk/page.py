@@ -1,7 +1,6 @@
 """Synchronous page facade; the provider owns the asynchronous RPC event loop."""
 
 import asyncio
-import logging
 
 from .contracts import PluginError
 
@@ -12,7 +11,12 @@ class PageContext:
     ):
         self.owner = resource.owner
         self.generation = resource.generation
-        self.log = logging.getLogger(f"toolframe.pages.{self.owner}")
+        self.log = runtime.log.bind(
+            **{
+                "toolframe.page.owner": self.owner,
+                "toolframe.page.generation": self.generation,
+            }
+        )
         self.services = PageServices(runtime, resource.key, epoch, loop, access_context)
         self.access = access or {}
 

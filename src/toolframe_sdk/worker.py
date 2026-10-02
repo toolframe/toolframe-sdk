@@ -6,8 +6,10 @@ import argparse
 import asyncio
 import contextlib
 import importlib.resources
+import logging
 import os
 import sys
+import time
 
 from .contracts import (
     MAX_FRAME_BYTES,
@@ -17,6 +19,7 @@ from .contracts import (
     load_object,
     validate,
 )
+from .logging import LoggingSession, log_context
 from .rpc import RpcPeer
 from .runtime import RuntimeContext, call_context, resolve
 from .tracing import configure_tracing
@@ -31,6 +34,7 @@ class Worker:
             None,
         )
         self.peer = None
+        self.logging = None
         self.lifecycle_lock = asyncio.Lock()
 
     def describe(self):
@@ -58,12 +62,59 @@ class Worker:
         }
 
     async def handle(self, method, params):
+        attributes = {"toolframe.operation": method}
+        for key, attribute in (
+            ("service", "toolframe.service.name"),
+            ("method", "toolframe.method.name"),
+        ):
+            if isinstance(params.get(key), str):
+                attributes[attribute] = params[key][:256]
+        context = params.get("context")
+        if isinstance(context, dict) and isinstance(context.get("root_id"), str):
+            attributes["toolframe.root.id"] = context["root_id"][:128]
+        with log_context(attributes, replace=True):
+            started = time.monotonic()
+            if self.context and method == "runtime.invoke":
+                self.context.log.debug("Plugin call started")
+            try:
+                result = await self._handle(method, params)
+            except Exception as error:
+                if self.context:
+                    self.context.log.error(
+                        "Plugin operation failed",
+                        extra={
+                            "error.type": error.code
+                            if isinstance(error, PluginError)
+                            else type(error).__name__,
+                        },
+                    )
+                raise
+            if self.context and method == "runtime.invoke":
+                self.context.log.debug(
+                    "Plugin call completed",
+                    extra={
+                        "toolframe.duration_ms": (time.monotonic() - started) * 1000,
+                    },
+                )
+            return result
+
+    async def _handle(self, method, params):
         if method == "runtime.describe":
             if self.peer.tracing is None:
                 self.peer.tracing = configure_tracing(
                     "toolframe.worker", params.get("tracing", {}), install_global=True
                 )
-            return self.describe()
+            if self.logging is None:
+                self.logging = LoggingSession(
+                    logging.getLogger(),
+                    params.get("logging", params.get("tracing", {})),
+                    tracing=self.peer.tracing,
+                )
+            report = self.describe()
+            self.logging.attributes.setdefault(
+                "toolframe.plugin.id", self.definition.id
+            )
+            return report
         if method == "runtime.activate":
             async with self.lifecycle_lock:
                 if self.plugin:
@@ -83,7 +134,9 @@ class Worker:
                 token = call_context.set(params.get("context", {}))
                 try:
                     await self.plugin.activate()
-                    return await self.plugin.health()
+                    health = await self.plugin.health()
+                    self.context.log.info("Plugin activated")
+                    return health
                 finally:
                     call_context.reset(token)
         if not self.plugin:
@@ -170,6 +223,8 @@ async def run(entrypoint):
                     await worker.plugin.dispose()
         if worker.context:
             await worker.context.close()
+        if worker.logging:
+            worker.logging.close()
         if peer.tracing:
             await asyncio.to_thread(peer.tracing.shutdown)
 

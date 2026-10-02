@@ -48,13 +48,17 @@ keys through `RuntimeContext.private_secrets`, independently of configuration an
 the database. Keys do not belong in descriptors, config, health, logs or output.
 
 Workers run with `python -m toolframe_sdk.worker --entrypoint package.module:plugin`.
-Stdin/stdout carry bounded JSON-RPC 2.0; logs and ordinary prints go to stderr.
+Stdin/stdout carry bounded JSON-RPC 2.0. [Plugin logging](docs/logging.md) uses
+`context.log` (or `self.log` on `Plugin`) with automatic plugin identity and
+function/call context. Structured local records go to stderr; accidental library
+stdout is redirected there to protect the protocol.
 The reader dispatches concurrently so a service handler can await a nested host
 call. A lost control pipe closes the worker and its managed resources.
 
 Optional [runtime tracing](docs/tracing.md) connects HTTP and nested plugin calls
 through W3C trace context. It is disabled by default and uses the `tracing` extra
 only when explicitly enabled by the host.
+Log export is separately opt-in through `OTEL_LOGS_EXPORTER=otlp`.
 
 Install development dependencies with `uv sync --group dev`, then run `uv run pytest`.
 
