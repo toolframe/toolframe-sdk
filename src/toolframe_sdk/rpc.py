@@ -19,6 +19,8 @@ class RpcPeer:
         handler: Callable[[str, dict], Awaitable[Any]],
         *,
         max_frame_bytes: int = MAX_FRAME_BYTES,
+        tracing=None,
+        trace_attributes=None,
     ):
         self.reader, self.writer, self.handler = reader, writer, handler
         self.max_frame_bytes = max_frame_bytes
@@ -27,6 +29,8 @@ class RpcPeer:
         self.counter = 0
         self.write_lock = asyncio.Lock()
         self.closed = False
+        self.tracing = tracing
+        self.trace_attributes = trace_attributes or {}
 
     async def send(self, message: dict):
         try:
@@ -51,6 +55,16 @@ class RpcPeer:
     async def request(
         self, method: str, params: dict | None = None, *, timeout: float = 30
     ):
+        if self.tracing and method != "runtime.describe":
+            with self.tracing.rpc_span(
+                method, params or {}, kind="client", attributes=self.trace_attributes
+            ):
+                return await self._request(
+                    method, params, timeout, self.tracing.inject()
+                )
+        return await self._request(method, params, timeout)
+
+    async def _request(self, method, params, timeout, carrier=None):
         self.counter += 1
         identifier = str(self.counter)
         future = asyncio.get_running_loop().create_future()
@@ -62,6 +76,7 @@ class RpcPeer:
                     "id": identifier,
                     "method": method,
                     "params": params or {},
+                    **({"_meta": carrier} if carrier else {}),
                 }
             )
             async with asyncio.timeout(timeout):
@@ -79,11 +94,15 @@ class RpcPeer:
         finally:
             self.pending.pop(identifier, None)
 
-    async def _respond(self, identifier, method, params):
+    async def _respond(self, identifier, method, params, carrier=None):
         try:
-            result = await self.handler(method, params)
-            if identifier is not None:
-                await self.send({"jsonrpc": "2.0", "id": identifier, "result": result})
+            if self.tracing and method != "runtime.describe":
+                with self.tracing.rpc_span(
+                    method, params, kind="server", carrier=carrier or {}
+                ):
+                    await self._handle(identifier, method, params)
+            else:
+                await self._handle(identifier, method, params)
         except asyncio.CancelledError:
             if identifier is not None and not self.closed:
                 with contextlib.suppress(Exception):
@@ -101,6 +120,11 @@ class RpcPeer:
                     await self._error(identifier, problem)
         finally:
             self.incoming.pop(identifier, None)
+
+    async def _handle(self, identifier, method, params):
+        result = await self.handler(method, params)
+        if identifier is not None:
+            await self.send({"jsonrpc": "2.0", "id": identifier, "result": result})
 
     async def _error(self, identifier, error):
         await self.send(
@@ -163,7 +187,9 @@ class RpcPeer:
                                 )
                                 continue
                             task = asyncio.create_task(
-                                self._respond(identifier, method, params)
+                                self._respond(
+                                    identifier, method, params, message.get("_meta")
+                                )
                             )
                             # Notifications need unique bookkeeping so they cannot hide unbounded work.
                             key = (

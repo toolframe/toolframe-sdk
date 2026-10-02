@@ -21,9 +21,17 @@ def check_metadata(data: bytes, project: dict) -> None:
     for key, value in expected.items():
         assert metadata[key] == value, (key, metadata[key], value)
     assert set(metadata.get_all("License-File", [])) == set(project["license-files"])
-    assert {Requirement(value) for value in metadata.get_all("Requires-Dist", [])} == {
-        Requirement(value) for value in project["dependencies"]
-    }, "Runtime requirements differ from pyproject.toml"
+    expected_requirements = {Requirement(value) for value in project["dependencies"]}
+    for extra, requirements in project.get("optional-dependencies", {}).items():
+        expected_requirements.update(
+            Requirement(f'{value}; extra == "{extra}"') for value in requirements
+        )
+    assert {
+        Requirement(value) for value in metadata.get_all("Requires-Dist", [])
+    } == expected_requirements, "Runtime requirements differ from pyproject.toml"
+    assert set(metadata.get_all("Provides-Extra", [])) == set(
+        project.get("optional-dependencies", {})
+    )
 
 
 def check_artifacts(dist_dir: Path, root: Path) -> None:
@@ -41,9 +49,7 @@ def check_artifacts(dist_dir: Path, root: Path) -> None:
         if path.is_file() and (path.suffix == ".py" or path.name == "py.typed")
     }
     assert "toolframe_sdk/py.typed" in sources
-    licenses = {
-        name: (root / name).read_bytes() for name in project["license-files"]
-    }
+    licenses = {name: (root / name).read_bytes() for name in project["license-files"]}
     dist_info = f"{stem}.dist-info"
     with zipfile.ZipFile(wheel_path) as wheel:
         check_metadata(wheel.read(f"{dist_info}/METADATA"), project)
@@ -57,6 +63,7 @@ def check_artifacts(dist_dir: Path, root: Path) -> None:
         ), "Wheel includes files outside the SDK and its metadata"
 
     with tarfile.open(sdist_path) as sdist:
+
         def read(name: str) -> bytes:
             member = sdist.extractfile(f"{stem}/{name}")
             assert member is not None, f"Missing sdist file: {name}"
@@ -70,10 +77,16 @@ def check_artifacts(dist_dir: Path, root: Path) -> None:
             assert read(name) == content, name
         for name in ("pyproject.toml", "README.md"):
             assert read(name) == (root / name).read_bytes(), name
-        forbidden = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "dist"}
+        forbidden = {
+            ".git",
+            ".venv",
+            "__pycache__",
+            ".pytest_cache",
+            ".ruff_cache",
+            "dist",
+        }
         assert all(
-            not forbidden.intersection(Path(name).parts)
-            for name in sdist.getnames()
+            not forbidden.intersection(Path(name).parts) for name in sdist.getnames()
         ), "Sdist includes development environments or build output"
 
     print(f"Artifacts verified: {wheel_path.name}, {sdist_path.name}")

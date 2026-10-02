@@ -20,8 +20,12 @@ def main() -> None:
     installed_path = Path(toolframe_sdk.__file__).resolve()
     assert installed_path.is_relative_to(Path(sys.prefix).resolve()), installed_path
 
-    for module in ("contracts", "http", "page", "rpc", "runtime", "worker"):
+    for module in ("contracts", "http", "page", "rpc", "runtime", "worker", "tracing"):
         importlib.import_module(f"toolframe_sdk.{module}")
+    assert not any(name.startswith("opentelemetry") for name in sys.modules)
+    assert importlib.util.find_spec("opentelemetry") is None, (
+        "Base SDK must not install tracing dependencies"
+    )
     assert importlib.resources.files(toolframe_sdk).joinpath("py.typed").is_file()
 
     definition = toolframe_sdk.PluginDefinition(

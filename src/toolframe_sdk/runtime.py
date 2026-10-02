@@ -115,6 +115,16 @@ class RuntimeContext:
     def task(self, factory, *, name=None):
         async def run():
             await self.ready.wait()
+            if self.peer.tracing:
+                with self.peer.tracing.span(
+                    "plugin.task",
+                    carrier={},
+                    attributes={"toolframe.task.name": name or "background"},
+                ):
+                    return await admitted()
+            return await admitted()
+
+        async def admitted():
             root = await self.peer.request("task.begin", {})
             token = call_context.set(root)
             try:

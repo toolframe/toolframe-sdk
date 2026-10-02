@@ -12,8 +12,11 @@ license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.14"
 dependencies = ["pydantic>=2.12.5,<3", "jsonschema>=4.23,<5"]
 
+[project.optional-dependencies]
+tracing = ["opentelemetry-sdk>=1.44,<2", "opentelemetry-exporter-otlp-proto-http>=1.44,<2"]
+
 [dependency-groups]
-dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.12,<1"]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.12,<1", "opentelemetry-sdk>=1.44,<2", "opentelemetry-exporter-otlp-proto-http>=1.44,<2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

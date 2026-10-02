@@ -19,6 +19,7 @@ from .contracts import (
 )
 from .rpc import RpcPeer
 from .runtime import RuntimeContext, call_context, resolve
+from .tracing import configure_tracing
 
 
 class Worker:
@@ -58,6 +59,10 @@ class Worker:
 
     async def handle(self, method, params):
         if method == "runtime.describe":
+            if self.peer.tracing is None:
+                self.peer.tracing = configure_tracing(
+                    "toolframe.worker", params.get("tracing", {}), install_global=True
+                )
             return self.describe()
         if method == "runtime.activate":
             async with self.lifecycle_lock:
@@ -165,6 +170,8 @@ async def run(entrypoint):
                     await worker.plugin.dispose()
         if worker.context:
             await worker.context.close()
+        if peer.tracing:
+            await asyncio.to_thread(peer.tracing.shutdown)
 
 
 def main():
