@@ -143,6 +143,11 @@ class RuntimeContext:
                     if operation.cancelled():
                         raise
                     cancellation = error
+                except Exception as error:
+                    if cancellation is not None:
+                        self.task_errors.append(str(error) or type(error).__name__)
+                        raise cancellation from None
+                    raise
 
         async def run():
             await self.ready.wait()

@@ -373,3 +373,25 @@ async def test_expired_authoritative_deadline_rejects_factory_without_suspension
     assert not runtime.tasks
     assert call_context.get() is None
     assert runtime.task_errors == ["TimeoutError"]
+
+
+async def test_cancellation_during_failed_cleanup_preserves_cancellation_once():
+    end_gate = asyncio.Event()
+    peer = FakePeer(end_gate=end_gate, end_error=RuntimeError("end failed"))
+    runtime = context(peer)
+
+    async def factory():
+        return "factory completed"
+
+    managed = runtime.task(factory, timeout=5)
+    await asyncio.wait_for(peer.end_started.wait(), 1)
+    managed.cancel()
+    await asyncio.sleep(0)
+    assert not managed.done()
+    end_gate.set()
+    with pytest.raises(asyncio.CancelledError):
+        await managed
+    assert peer.end_calls == [{"root_id": "root-1"}]
+    assert runtime.task_errors == ["end failed"]
+    assert not runtime.tasks
+    assert call_context.get() is None
