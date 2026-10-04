@@ -166,7 +166,10 @@ class RuntimeContext:
                 try:
                     if timeout is None:
                         return await factory()
-                    async with asyncio.timeout(max(0, root["deadline"] - time.time())):
+                    remaining = root["deadline"] - time.time()
+                    if remaining <= 0:
+                        raise TimeoutError
+                    async with asyncio.timeout(remaining):
                         return await factory()
                 except Exception as error:
                     self.task_errors.append(str(error) or type(error).__name__)

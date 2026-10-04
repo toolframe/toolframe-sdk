@@ -52,9 +52,7 @@ class FakePeer:
             return {
                 "root_id": f"root-{self._root_number}",
                 "deadline": (
-                    self.deadline
-                    if self.deadline is not None
-                    else time.time() + 30
+                    self.deadline if self.deadline is not None else time.time() + 30
                 ),
             }
         if method == "task.end":
@@ -356,3 +354,22 @@ async def test_stale_admission_does_not_leak_and_next_request_can_succeed():
     assert peer.begin_calls == [{}, {}]
     assert peer.end_calls == [{"root_id": "root-valid"}]
     assert runtime.tasks == set()
+
+
+async def test_expired_authoritative_deadline_rejects_factory_without_suspension():
+    peer = FakePeer(deadline=time.time() - 1)
+    runtime = context(peer)
+    called = False
+
+    async def factory():
+        nonlocal called
+        called = True
+        return "must not run"
+
+    with pytest.raises(TimeoutError):
+        await runtime.task(factory, timeout=5)
+    assert not called
+    assert peer.end_calls == [{"root_id": "root-1"}]
+    assert not runtime.tasks
+    assert call_context.get() is None
+    assert runtime.task_errors == ["TimeoutError"]
