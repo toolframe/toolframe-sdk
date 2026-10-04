@@ -47,6 +47,8 @@ Plugins may declare stable `private_secrets` names. Core delivers their retained
 keys through `RuntimeContext.private_secrets`, independently of configuration and
 the database. Keys do not belong in descriptors, config, health, logs or output.
 
+For bounded plugin background work, see [managed attempts and polling](docs/tasks.md).
+
 Workers run with `python -m toolframe_sdk.worker --entrypoint package.module:plugin`.
 Stdin/stdout carry bounded JSON-RPC 2.0; logs and ordinary prints go to stderr.
 The reader dispatches concurrently so a service handler can await a nested host

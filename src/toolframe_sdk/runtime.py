@@ -6,6 +6,8 @@ import asyncio
 import contextvars
 import inspect
 import logging
+import math
+import sys
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -112,19 +114,79 @@ class RuntimeContext:
     def storage(self, alias="storage"):
         return StorageClient(self, alias)
 
-    def task(self, factory, *, name=None):
+    def task(self, factory, *, name=None, timeout=None):
+        """Start a managed attempt; an explicit budget bounds the entire factory."""
+        if timeout is not None:
+            if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
+                raise PluginError(
+                    "invalid_task_timeout", "Task timeout must be finite and positive"
+                )
+            try:
+                timeout = float(timeout)
+            except OverflowError as error:
+                raise PluginError(
+                    "invalid_task_timeout", "Task timeout must be finite and positive"
+                ) from error
+            if not math.isfinite(timeout) or timeout <= 0:
+                raise PluginError(
+                    "invalid_task_timeout", "Task timeout must be finite and positive"
+                )
+
+        async def settle(awaitable):
+            # Finish the ownership handshake even if disposal cancels us again.
+            operation = asyncio.ensure_future(awaitable)
+            cancellation = None
+            while True:
+                try:
+                    return await asyncio.shield(operation), cancellation
+                except asyncio.CancelledError as error:
+                    if operation.cancelled():
+                        raise
+                    cancellation = error
+
         async def run():
             await self.ready.wait()
-            root = await self.peer.request("task.begin", {})
-            token = call_context.set(root)
+            root, token = None, None
+            admission = asyncio.create_task(
+                self.peer.request(
+                    "task.begin", {} if timeout is None else {"timeout": timeout}
+                )
+            )
             try:
-                return await factory()
-            except Exception as error:
-                self.task_errors.append(str(error))
-                raise
+                try:
+                    root = await asyncio.shield(admission)
+                except asyncio.CancelledError:
+                    try:
+                        root, _ = await settle(admission)
+                    except (Exception, asyncio.CancelledError) as error:  # noqa: BLE001 - preserve cancellation even when admission fails
+                        if not isinstance(error, asyncio.CancelledError):
+                            self.task_errors.append(str(error) or type(error).__name__)
+                    raise
+                token = call_context.set(root)
+                try:
+                    if timeout is None:
+                        return await factory()
+                    async with asyncio.timeout(max(0, root["deadline"] - time.time())):
+                        return await factory()
+                except Exception as error:
+                    self.task_errors.append(str(error) or type(error).__name__)
+                    raise
             finally:
-                call_context.reset(token)
-                await self.peer.request("task.end", {"root_id": root["root_id"]})
+                failure = sys.exception()
+                if token is not None:
+                    call_context.reset(token)
+                if root is not None:
+                    try:
+                        _, cancellation = await settle(
+                            self.peer.request("task.end", {"root_id": root["root_id"]})
+                        )
+                    except Exception as error:
+                        self.task_errors.append(str(error) or type(error).__name__)
+                        if isinstance(failure, asyncio.CancelledError):
+                            raise failure
+                        raise
+                    if cancellation is not None:
+                        raise cancellation
 
         task = asyncio.create_task(run(), name=name)
         self.tasks.add(task)
