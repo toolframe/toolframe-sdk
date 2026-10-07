@@ -20,6 +20,7 @@ from .contracts import (
     load_object,
     validate,
 )
+from .object_store import ObjectStoreClient
 from .page import PageContext
 from .runtime import Plugin, RuntimeContext, StorageClient, call_context
 
@@ -31,6 +32,7 @@ __all__ = [
     "AuthorizationSpec",
     "MethodSpec",
     "Migration",
+    "ObjectStoreClient",
     "OwnedResource",
     "PageContext",
     "Plugin",

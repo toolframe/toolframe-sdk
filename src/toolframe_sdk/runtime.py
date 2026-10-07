@@ -111,6 +111,11 @@ class RuntimeContext:
             "mcp.access", {"access_context": access_context}, timeout=30
         )
 
+    def object_store(self, alias="objects"):
+        from .object_store import ObjectStoreClient
+
+        return ObjectStoreClient(self, alias)
+
     def storage(self, alias="storage"):
         return StorageClient(self, alias)
 

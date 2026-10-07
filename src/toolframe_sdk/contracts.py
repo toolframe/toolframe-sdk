@@ -209,6 +209,7 @@ class PluginDefinition(Contract):
     provider_kind: (
         Literal[
             "storage",
+            "object-store",
             "dashboard",
             "mcp",
             "llms",
