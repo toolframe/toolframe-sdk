@@ -4,6 +4,7 @@ import asyncio
 import socket
 
 from .contracts import PluginError
+from .tracing import TracingMiddleware, worker_tracing
 
 
 class HttpServer:
@@ -17,6 +18,8 @@ class HttpServer:
     async def start(self):
         import uvicorn
 
+        tracing = worker_tracing()
+        app = TracingMiddleware(self.app, tracing) if tracing else self.app
         self.socket = socket.socket()
         self.socket.bind(("127.0.0.1", 0))
         self.socket.listen(128)
@@ -24,7 +27,7 @@ class HttpServer:
         self.url = f"http://127.0.0.1:{self.socket.getsockname()[1]}"
         self.server = uvicorn.Server(
             uvicorn.Config(
-                self.app,
+                app,
                 log_level="warning",
                 access_log=False,
                 lifespan="on",

@@ -13,6 +13,7 @@ import uuid
 from contextlib import asynccontextmanager
 
 from .contracts import OwnedResource, PluginError
+from .logging import log_context, plugin_logger
 
 call_context: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
     "toolframe_call", default=None
@@ -34,6 +35,13 @@ class RuntimeContext:
         self.config = config or {}
         self.state_directory = state_directory
         self.private_secrets = private_secrets or {}
+        tracing = getattr(peer, "tracing", None)
+        level = (
+            min(logging.INFO, tracing.logs.handler.level)
+            if tracing and tracing.logs
+            else logging.INFO
+        )
+        self.log = plugin_logger(plugin_id, generation, level=level)
         self.tasks: set[asyncio.Task] = set()
         self.ready = asyncio.Event()
         self.task_errors: list[str] = []
@@ -156,6 +164,24 @@ class RuntimeContext:
 
         async def run():
             await self.ready.wait()
+            with log_context(
+                {
+                    "toolframe.operation": "plugin.task",
+                    "toolframe.task.name": name or "background",
+                },
+                replace=True,
+            ):
+                tracing = getattr(self.peer, "tracing", None)
+                if tracing:
+                    with tracing.span(
+                        "plugin.task",
+                        carrier={},
+                        attributes={"toolframe.task.name": name or "background"},
+                    ):
+                        return await admitted()
+                return await admitted()
+
+        async def admitted():
             root, token = None, None
             admission = asyncio.create_task(
                 self.peer.request(
@@ -173,17 +199,21 @@ class RuntimeContext:
                             self.task_errors.append(str(error) or type(error).__name__)
                     raise
                 token = call_context.set(root)
-                try:
-                    if timeout is None:
-                        return await factory()
-                    remaining = root["deadline"] - time.time()
-                    if remaining <= 0:
-                        raise TimeoutError
-                    async with asyncio.timeout(remaining):
-                        return await factory()
-                except Exception as error:
-                    self.task_errors.append(str(error) or type(error).__name__)
-                    raise
+                with log_context({"toolframe.root.id": root["root_id"]}):
+                    try:
+                        if timeout is None:
+                            return await factory()
+                        remaining = root["deadline"] - time.time()
+                        if remaining <= 0:
+                            raise TimeoutError
+                        async with asyncio.timeout(remaining):
+                            return await factory()
+                    except Exception as error:
+                        self.task_errors.append(str(error) or type(error).__name__)
+                        self.log.error(
+                            "Plugin task failed", extra={"error.type": type(error).__name__}
+                        )
+                        raise
             finally:
                 failure = sys.exception()
                 if token is not None:
@@ -289,7 +319,7 @@ class StorageClient:
                     )
                 )
             except Exception:  # noqa: BLE001 - preserve the original business failure on disconnect
-                logging.getLogger(__name__).warning(
+                self.context.log.warning(
                     "Rollback unacknowledged; provider root finalization must settle it"
                 )
             raise
@@ -300,6 +330,7 @@ class StorageClient:
 class Plugin:
     def __init__(self, context: RuntimeContext):
         self.context = context
+        self.log = context.log
 
     async def activate(self):
         pass
