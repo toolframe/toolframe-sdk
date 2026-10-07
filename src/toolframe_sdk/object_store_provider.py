@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
-import contextlib
 import hashlib
 import re
 import secrets
@@ -76,13 +75,24 @@ class ObjectStoreProvider(Plugin):
 
     async def _io(self, function, *args):
         task = asyncio.create_task(asyncio.to_thread(function, *args))
-        try:
-            return await asyncio.shield(task)
-        except asyncio.CancelledError:
-            # A thread cannot be cancelled. Retain the lock and file until it settles.
-            with contextlib.suppress(Exception):
-                await task
-            raise
+        cancellation = None
+        while True:
+            try:
+                result = await asyncio.shield(task)
+            except asyncio.CancelledError as error:
+                if task.cancelled():
+                    raise
+                # A thread cannot be cancelled. Repeated cancellation must also
+                # retain the provider lock and upload file until it settles.
+                cancellation = error
+            except Exception:
+                if cancellation is not None:
+                    raise cancellation from None
+                raise
+            else:
+                if cancellation is not None:
+                    raise cancellation
+                return result
 
     async def activate(self):
         async with self.lock:

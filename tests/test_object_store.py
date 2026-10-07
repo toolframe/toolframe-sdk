@@ -222,7 +222,11 @@ async def test_dispose_closes_abandoned_uploads(store):
     assert file.closed and not provider.uploads
 
 
-async def test_cancelled_backend_finishes_before_disposal(store):
+@pytest.mark.parametrize("cancellations", [1, 3])
+@pytest.mark.parametrize("backend_fails", [False, True])
+async def test_cancelled_backend_finishes_before_disposal(
+    store, cancellations, backend_fails
+):
     provider, client = store
     import threading
 
@@ -231,20 +235,37 @@ async def test_cancelled_backend_finishes_before_disposal(store):
 
     def slow(*args):
         started.set()
-        finish.wait(timeout=3)
+        assert finish.wait(timeout=3)
+        if backend_fails:
+            raise OSError("backend failed after cancellation")
         return original(*args)
 
     provider.put = slow
     upload = await client.begin_upload(
         "x", 1, content_type="image/png", sha256=hashlib.sha256(b"a").hexdigest()
     )
+    file = provider.uploads[upload["upload_id"]].file
     await client.upload_chunk(upload["upload_id"], 0, b"a")
     task = asyncio.create_task(client.complete_upload(upload["upload_id"]))
-    await asyncio.to_thread(started.wait, 3)
-    task.cancel()
-    await asyncio.sleep(0)
-    assert provider.lock.locked()
-    finish.set()
-    with pytest.raises(asyncio.CancelledError):
-        await task
-    assert await client.get("x") == b"a"
+    disposal = None
+    try:
+        assert await asyncio.to_thread(started.wait, 3)
+        for _ in range(cancellations):
+            task.cancel()
+            await asyncio.sleep(0.01)
+        disposal = asyncio.create_task(provider.dispose())
+        await asyncio.sleep(0.01)
+        assert not task.done()
+        assert not disposal.done()
+        assert provider.lock.locked()
+        assert not file.closed
+    finally:
+        finish.set()
+        outcomes = await asyncio.gather(
+            task, *([disposal] if disposal else []), return_exceptions=True
+        )
+    assert isinstance(outcomes[0], asyncio.CancelledError)
+    assert outcomes[1] is None
+    assert file.closed
+    if not backend_fails:
+        assert next(iter(provider.objects.values()))[1] == b"a"
