@@ -18,6 +18,12 @@ from opentelemetry.sdk.trace.export import (
     SpanExporter,
     SpanExportResult,
 )
+from opentelemetry.sdk.trace.sampling import (
+    ALWAYS_OFF,
+    ALWAYS_ON,
+    ParentBased,
+    TraceIdRatioBased,
+)
 from opentelemetry.trace import SpanKind, Status, StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
@@ -164,6 +170,36 @@ class Tracing:
             self.logs.shutdown()
 
 
+def _configured_sampler():
+    name = (
+        os.environ.get("OTEL_TRACES_SAMPLER", "parentbased_always_on").strip().lower()
+    )
+    fixed = {
+        "always_on": ALWAYS_ON,
+        "always_off": ALWAYS_OFF,
+        "parentbased_always_on": ParentBased(ALWAYS_ON),
+        "parentbased_always_off": ParentBased(ALWAYS_OFF),
+    }
+    if name in fixed:
+        return fixed[name]
+    if name not in {"traceidratio", "parentbased_traceidratio"}:
+        raise PluginError(
+            "tracing_config_invalid",
+            "OTEL_TRACES_SAMPLER must be always_on, always_off, traceidratio, or their parentbased_ variants",
+        )
+    try:
+        ratio = float(os.environ.get("OTEL_TRACES_SAMPLER_ARG", "1"))
+        if not 0 <= ratio <= 1:
+            raise ValueError()
+    except ValueError:
+        raise PluginError(
+            "tracing_config_invalid",
+            "OTEL_TRACES_SAMPLER_ARG must be a finite ratio between 0 and 1",
+        ) from None
+    sampler = TraceIdRatioBased(ratio)
+    return ParentBased(sampler) if name.startswith("parentbased_") else sampler
+
+
 def create_tracing(service_name, attributes, *, install_global=False):
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or os.environ.get(
         "OTEL_EXPORTER_OTLP_ENDPOINT", ""
@@ -206,6 +242,7 @@ def create_tracing(service_name, attributes, *, install_global=False):
             "tracing_config_invalid",
             "Tracing needs a positive queue/delay, a batch no larger than the queue, and an exporter timeout in (0, 5] seconds",
         ) from None
+    sampler = _configured_sampler()
     resource = Resource.create(
         {
             "service.name": os.environ.get("OTEL_SERVICE_NAME") or service_name,
@@ -225,7 +262,9 @@ def create_tracing(service_name, attributes, *, install_global=False):
     provider, exporter = None, None
     try:
         exporter = _ClosingExporter(OTLPSpanExporter(timeout=timeout))
-        provider = TracerProvider(resource=resource, shutdown_on_exit=False)
+        provider = TracerProvider(
+            resource=resource, sampler=sampler, shutdown_on_exit=False
+        )
         processor = BatchSpanProcessor(
             exporter,
             max_queue_size=queue,

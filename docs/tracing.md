@@ -10,6 +10,11 @@ For standalone worker development, install `toolframe-sdk[tracing]` and set
 sampling and exporter configuration, see the tracing guide in Toolframe Core's
 documentation.
 
+`OTEL_TRACES_SAMPLER` accepts `always_on`, `always_off`, `traceidratio`, and their
+`parentbased_` variants. Ratio samplers use `OTEL_TRACES_SAMPLER_ARG`, defaulting
+to `1`; its value must be finite and between `0` and `1`. Invalid sampler settings
+fail startup instead of silently falling back to full sampling.
+
 ## Propagation
 
 Each instrumented JSON-RPC request creates a client span and carries W3C

@@ -313,6 +313,70 @@ def test_enabled_runtime_rejects_unsupported_protocol_without_starting_threads(
         configure_tracing("example")
 
 
+@pytest.mark.parametrize(
+    "sampler,ratio",
+    [
+        ("typo", None),
+        ("traceidratio", "typo"),
+        ("parentbased_traceidratio", "-0.1"),
+        ("parentbased_traceidratio", "1.1"),
+        ("traceidratio", "nan"),
+        ("traceidratio", "inf"),
+    ],
+)
+def test_invalid_sampler_configuration_fails_before_startup(
+    monkeypatch, sampler, ratio
+):
+    for key in os.environ:
+        if key.startswith("OTEL_"):
+            monkeypatch.delenv(key)
+    monkeypatch.setenv("TOOLFRAME_TRACING_ENABLED", "true")
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+    monkeypatch.setenv("OTEL_TRACES_SAMPLER", sampler)
+    if ratio is not None:
+        monkeypatch.setenv("OTEL_TRACES_SAMPLER_ARG", ratio)
+    tracing = None
+    try:
+        with pytest.raises(PluginError) as error:
+            tracing = configure_tracing("invalid-sampler")
+        assert error.value.code == "tracing_config_invalid"
+    finally:
+        if tracing:
+            tracing.shutdown()
+
+
+@pytest.mark.parametrize(
+    "sampler,ratio,sampled",
+    [
+        ("always_on", None, True),
+        ("always_off", None, False),
+        ("parentbased_always_on", None, True),
+        ("parentbased_always_off", None, False),
+        ("traceidratio", "0", False),
+        ("traceidratio", "1", True),
+        ("parentbased_traceidratio", "0", False),
+        ("parentbased_traceidratio", "1", True),
+    ],
+)
+def test_configured_sampler_honors_root_sampling_policy(
+    monkeypatch, sampler, ratio, sampled
+):
+    for key in os.environ:
+        if key.startswith("OTEL_"):
+            monkeypatch.delenv(key)
+    monkeypatch.setenv("TOOLFRAME_TRACING_ENABLED", "true")
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+    monkeypatch.setenv("OTEL_TRACES_SAMPLER", sampler)
+    if ratio is not None:
+        monkeypatch.setenv("OTEL_TRACES_SAMPLER_ARG", ratio)
+    tracing = configure_tracing("sampler-policy")
+    try:
+        decision = tracing.provider.sampler.should_sample(None, 1, "root").decision
+        assert decision.is_sampled() is sampled
+    finally:
+        tracing.shutdown()
+
+
 async def test_unavailable_collector_does_not_fail_calls_or_block_shutdown(monkeypatch):
     for key in os.environ:
         if key.startswith("OTEL_"):
