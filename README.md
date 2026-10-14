@@ -4,6 +4,20 @@ Public package definitions, service/resource contracts, scoped storage clients a
 the isolated Python worker protocol. Core and providers depend on this package;
 it imports neither core nor Streamlit/FastMCP.
 
+## Quick start
+
+Use Python 3.14 or newer:
+
+```sh
+python -m pip install 'toolframe-sdk==0.3.0'
+```
+
+The SDK is a library for plugin authors. To run an application, install the
+[native Toolframe CLI](https://github.com/toolframe/toolframe-core#readme).
+`toolframe --home APP plugin new my-plugin` creates a buildable plugin that uses
+these public contracts. For automated contract and installed-application checks,
+use [toolframe-testkit](https://github.com/toolframe/toolframe-testkit).
+
 The optional `oidc-auth` provider kind supplies shared authentication adapters.
 `Principal(kind="user")` identifies an admitted local user through `user_id`;
 `kind="delegated"` binds business scopes to `user_id`, `client_id`, `grant_id`,
@@ -72,6 +86,8 @@ Install development dependencies with `uv sync --group dev`, then run `uv run py
 For the isolated CI checks and manual TestPyPI/PyPI publishing setup, see
 [CI and publishing](docs/ci.md). Run `bash scripts/validate.sh` to lint, test,
 build and verify a fresh wheel installation locally.
+
+For release validation and Trusted Publisher setup, see [releasing](docs/releasing.md).
 
 ## License
 

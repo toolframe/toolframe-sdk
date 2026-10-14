@@ -9,8 +9,15 @@ description = "Public contracts and isolated worker runtime for Toolframe plugin
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "byfb", email = "62798989+byfb@users.noreply.github.com" }]
 requires-python = ">=3.14"
 dependencies = ["pydantic>=2.12.5,<3", "jsonschema>=4.23,<5"]
+
+[project.urls]
+Homepage = "https://github.com/toolframe/toolframe-sdk"
+Repository = "https://github.com/toolframe/toolframe-sdk"
+Documentation = "https://github.com/toolframe/toolframe-sdk#readme"
+Issues = "https://github.com/toolframe/toolframe-sdk/issues"
 
 [project.optional-dependencies]
 tracing = ["opentelemetry-sdk>=1.44,<2", "opentelemetry-exporter-otlp-proto-http>=1.44,<2"]

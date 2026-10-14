@@ -67,55 +67,7 @@ are `contents: read`, checkout does not persist credentials, and uv is pinned to
 caller. See the [uv integration guide](https://docs.astral.sh/uv/guides/integration/github/)
 for the setup and isolated build pattern.
 
-## Manual publishing
+## Publication
 
-`publish.yml` supports only manual dispatch. Select `repository=testpypi`
-(the default) or `repository=pypi` and run it **on an existing tag** exactly equal
-to `v<project.version>`. For the current version, that is `v0.3.0`.
-A branch named `v0.3.0`, a plain `0.3.0` tag or a different version all fail the
-release guard before validation and upload.
-
-The workflow checks out the dispatch SHA, validates the tag against
-`pyproject.toml`, and calls `ci.yml` at that same revision. Publishing waits for
-both matrix jobs to pass, then downloads the Ubuntu distribution artifact from
-that same run. It never rebuilds in the publishing job or takes artifacts from a
-different run. Re-running a release still requires the complete validation gate.
-
-Only the publishing job has `id-token: write`. It runs in the explicitly selected
-`testpypi` or `pypi` environment, uses the pinned PyPA publishing action and the
-matching fixed upload endpoint, and does not check out repository code.
-Uploads to the same index are serialized without cancelling an active upload.
-Existing versions fail normally; duplicate uploads are not silently skipped.
-The OIDC job is in the top-level workflow, as required by the
-[PyPA publishing action](https://github.com/pypa/gh-action-pypi-publish).
-
-Required external setup before a future upload:
-
-1. Choose the actual GitHub owner and repository, configure its remote, push the
-   reviewed commit, and enable Actions. `publish.yml` must exist on the default
-   branch and on the tagged revision. No GitHub owner or remote is assumed here.
-2. Create GitHub environments named exactly `testpypi` and `pypi`. Configure
-   permitted version tags and any required reviewers, especially for production.
-   Protect release tags from unauthorized creation or movement.
-3. Configure a Trusted Publisher separately on TestPyPI and PyPI, using the actual
-   owner, actual repository name, workflow filename **`publish.yml`**, and the
-   corresponding environment **`testpypi`** or **`pypi`**. The distribution/project
-   name is **`toolframe-sdk`**. For an existing project use its Publishing settings;
-   for a new project configure a pending publisher under the account. No API-token
-   secrets are needed. Follow the official
-   [existing-project](https://docs.pypi.org/trusted-publishers/adding-a-publisher/)
-   or [pending-publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
-   instructions; a pending publisher does not reserve the package name.
-4. After reviewing the validated revision, create and push the matching version
-   tag. Dispatch TestPyPI first, then explicitly select PyPI for production.
-   For example, once the remote and tag exist, the future dispatch commands are:
-
-   ```sh
-   gh workflow run publish.yml --ref v0.3.0 -f repository=testpypi
-   gh workflow run publish.yml --ref v0.3.0 -f repository=pypi
-   ```
-
-Creating these files and running local checks does not create repositories,
-register publishers, push tags or upload packages. Linux SDK CI does not establish
-support for the full Toolframe application. Hosted runners, Windows, physical
-Intel Macs and a real OIDC upload must not be claimed as locally verified.
+See [releasing](releasing.md) for dependency order, private repository access,
+Trusted Publisher bindings, version tags and consumer installation checks.
