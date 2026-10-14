@@ -211,7 +211,8 @@ class RuntimeContext:
                     except Exception as error:
                         self.task_errors.append(str(error) or type(error).__name__)
                         self.log.error(
-                            "Plugin task failed", extra={"error.type": type(error).__name__}
+                            "Plugin task failed",
+                            extra={"error.type": type(error).__name__},
                         )
                         raise
             finally:
