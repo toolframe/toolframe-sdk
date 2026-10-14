@@ -95,3 +95,5 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTI
 
 For PostgreSQL migration variants and generated identifiers in SDK 0.3, see
 [portable plugin storage](docs/storage.md).
+
+For development hooks and contribution rules, see [Contributing](CONTRIBUTING.md).
