@@ -54,9 +54,9 @@ bash -n scripts/validate.sh
 
 ## GitHub Actions
 
-`ci.yml` runs on every push, pull request, manual dispatch and reusable-workflow
-call. Its Python 3.14.7 matrix uses `ubuntu-24.04` and `macos-15`; these labels are
-listed in the [official GitHub runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+`ci.yml` runs on pushes to `main`, pull requests, manual dispatch and reusable
+workflow calls. Its Python 3.14.7 matrix uses `ubuntu-24.04` and `macos-15`; these
+labels are listed in the [official GitHub runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 Both jobs run the full local validation script and save wheel/sdist artifacts
 named `sdk-distributions-<runner>-<commit SHA>` for seven days. Each checks out the
 triggering SHA and has a 15-minute timeout. No job executes `pull_request_target`.
