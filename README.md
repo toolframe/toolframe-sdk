@@ -93,7 +93,7 @@ For release validation and Trusted Publisher setup, see [releasing](docs/releasi
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-For PostgreSQL migration variants and generated identifiers in SDK 0.3, see
+For PostgreSQL migration variants and generated identifiers in SDK 0.4, see
 [portable plugin storage](docs/storage.md).
 
 For development hooks and contribution rules, see [Contributing](CONTRIBUTING.md).
