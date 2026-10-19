@@ -124,8 +124,8 @@ class RuntimeContext:
 
         return ObjectStoreClient(self, alias)
 
-    def storage(self, alias="storage"):
-        return StorageClient(self, alias)
+    def sql(self, alias="sql"):
+        return SqlClient(self, alias)
 
     def task(self, factory, *, name=None, timeout=None):
         """Start a managed attempt; an explicit budget bounds the entire factory."""
@@ -252,8 +252,8 @@ class RuntimeContext:
             await asyncio.gather(*tasks, return_exceptions=True)
 
 
-class StorageClient:
-    def __init__(self, context, alias="storage", token=None):
+class SqlClient:
+    def __init__(self, context, alias="sql", token=None):
         self.context, self.alias, self.token = context, alias, token
 
     async def query(self, sql, parameters=()):
@@ -309,7 +309,7 @@ class StorageClient:
         )
         if result.get("committed"):
             raise PluginError("already_committed", "Mutation already committed", result)
-        client = StorageClient(self.context, self.alias, result["transaction"])
+        client = SqlClient(self.context, self.alias, result["transaction"])
         try:
             yield client
         except BaseException:

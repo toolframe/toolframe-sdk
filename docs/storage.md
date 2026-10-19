@@ -1,16 +1,26 @@
-# Portable plugin storage
+# Portable SQL stores
 
-SDK 0.3 adds explicit PostgreSQL migration variants and generated-row results.
+Declare a required `sql` alias for `Requirement(service="toolframe.sql")`, then
+use `context.sql()` to obtain a `SqlClient`. Pass a declared alias to
+`context.sql("reporting")` when the dependency has a different name. SQL providers
+declare `provider_kind="sql"`; their administrative `toolframe.sql.admin` service
+is reserved for Core. Object storage uses the separate `context.object_store()`
+API.
+
+SDK 0.4 uses these SQL names throughout the public API. Plugins and Core must use
+matching SDK versions when upgrading from the earlier storage API.
+
+Migrations support explicit PostgreSQL variants and generated-row results.
 A `Migration.sql` value remains its original SQLite SQL; its checksum is unchanged.
 Add `dialects={"postgresql": "..."}` for PostgreSQL. A provider selects a variant
 with `migration.for_dialect("postgresql")`, whose checksum covers that selected SQL.
 Missing variants are rejected, never translated implicitly. Store revision/parent
 ordering stays the same, but each database maintains its own migration history.
 
-Use `storage.execute_returning("INSERT INTO items(label) VALUES (?) RETURNING id",
+Use `sql.execute_returning("INSERT INTO items(label) VALUES (?) RETURNING id",
 [label])` for generated IDs. It returns `{"rows": [{"id": 1}], "rowcount": 1}` on
 compatible SQLite and PostgreSQL providers. It is also available inside
-`async with storage.transaction() as transaction`. Ordinary `execute` retains its
+`async with sql.transaction() as transaction`. Ordinary `execute` retains its
 result shape; `lastrowid` is provider-specific and may be null on PostgreSQL.
 
 Methods use positional qmark parameters. Plugins remain responsible for portable
@@ -19,7 +29,7 @@ PostgreSQL support does not imply arbitrary SQLite SQL compatibility. Only use
 JSON-compatible result values and follow the provider's documented SQL limits.
 
 Pass stable `mutation_id` values when acknowledgement loss must be reconciled.
-Use `storage.receipt(mutation_id)` before retrying an uncertain write. A transaction
+Use `sql.receipt(mutation_id)` before retrying an uncertain write. A transaction
 that already committed reports `already_committed` when begun with that ID; its
 body must not run twice. Transaction tokens are scoped to an admitted root and
 worker generation and are not durable recovery handles.

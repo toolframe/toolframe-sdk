@@ -8,7 +8,7 @@ from toolframe_sdk import Plugin
 
 class Entries(Plugin):
     async def invoke(self, service, method, params):
-        result = await self.context.storage().query("SELECT id, label FROM entries")
+        result = await self.context.sql().query("SELECT id, label FROM entries")
         self.log.info(
             "Loaded %d entries", len(result),
             extra={"entry_count": len(result)},
