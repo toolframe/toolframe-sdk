@@ -19,9 +19,9 @@ next_page = await objects.list(prefix="images/", after=page["next_after"], limit
 await objects.delete(metadata["key"])
 ```
 
-This API is part of the object-storage development revision of SDK 0.3.0. Build
-matching SDK/Core wheels from this revision until it receives a published release.
-Core must recognize the `object-store` provider kind and allocate its state path.
+This API is available in SDK 0.4. Use Core 0.7 with matching object-store
+providers. Core recognizes the `object-store` provider kind and allocates its
+state path.
 
 ## Ownership and authorization
 
