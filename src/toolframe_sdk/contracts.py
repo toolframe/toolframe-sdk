@@ -208,7 +208,7 @@ class PluginDefinition(Contract):
     kind: Literal["business", "provider"] = "business"
     provider_kind: (
         Literal[
-            "storage",
+            "sql",
             "object-store",
             "dashboard",
             "mcp",

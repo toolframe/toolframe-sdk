@@ -23,9 +23,9 @@ from .contracts import (
 from .logging import ContextLogger
 from .object_store import ObjectStoreClient
 from .page import PageContext
-from .runtime import Plugin, RuntimeContext, StorageClient, call_context
+from .runtime import Plugin, RuntimeContext, SqlClient, call_context
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = [
     "MAX_FRAME_BYTES",
     "PROTOCOL_VERSION",
@@ -46,7 +46,7 @@ __all__ = [
     "RuntimeContext",
     "ScopeSpec",
     "ServiceSpec",
-    "StorageClient",
+    "SqlClient",
     "StoreSchema",
     "call_context",
     "digest",

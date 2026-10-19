@@ -9,7 +9,7 @@ it imports neither core nor Streamlit/FastMCP.
 Use Python 3.14 or newer:
 
 ```sh
-python -m pip install 'toolframe-sdk==0.3.0'
+python -m pip install 'toolframe-sdk==0.4.0'
 ```
 
 The SDK is a library for plugin authors. To run an application, install the
