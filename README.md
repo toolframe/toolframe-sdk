@@ -9,7 +9,7 @@ it imports neither core nor Streamlit/FastMCP.
 Use Python 3.14 or newer:
 
 ```sh
-python -m pip install --find-links /path/to/wheelhouse 'toolframe-sdk==0.4.0+web.1'
+python -m pip install --find-links /path/to/wheelhouse 'toolframe-sdk==0.4.1'
 ```
 
 The Web contract build requires the supplied local wheelhouse. Its public-version
