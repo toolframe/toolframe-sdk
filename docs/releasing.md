@@ -38,7 +38,7 @@ repository access token is needed.
 ## Publish and verify
 
 After the release commit and matching tag are available remotely, manually run
-`publish.yml` at `v0.3.0`, selecting `testpypi` first and then `pypi`.
+`publish.yml` at `v0.4.1`, selecting `testpypi` first and then `pypi`.
 A branch or mismatched tag is rejected. Downloaded files are the artifacts from
 that run; the publishing job does not rebuild them. Published files cannot be
 replaced under the same version.
@@ -47,7 +47,7 @@ After PyPI publication, verify a clean installation:
 
 ```sh
 uv venv --python 3.14.7 build/consumer
-uv pip install --python build/consumer/bin/python 'toolframe-sdk==0.4.0'
+uv pip install --python build/consumer/bin/python 'toolframe-sdk==0.4.1'
 uv pip check --python build/consumer/bin/python
 ```
 

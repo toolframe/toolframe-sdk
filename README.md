@@ -9,8 +9,11 @@ it imports neither core nor Streamlit/FastMCP.
 Use Python 3.14 or newer:
 
 ```sh
-python -m pip install 'toolframe-sdk==0.4.0'
+python -m pip install 'toolframe-sdk==0.4.1'
 ```
+
+SDK 0.4.1 adds the Web presentation contracts while retaining the SDK 0.4
+worker protocol and existing provider contracts.
 
 The SDK is a library for plugin authors. To run an application, install the
 [native Toolframe CLI](https://github.com/toolframe/toolframe-core#readme).
@@ -61,6 +64,10 @@ Plugins may declare stable `private_secrets` names. Core delivers their retained
 keys through `RuntimeContext.private_secrets`, independently of configuration and
 the database. Keys do not belong in descriptors, config, health, logs or output.
 
+For full HTML documents, forms, fragments and app-owned browser assets, see
+[Web contract v1](docs/web.md). Web handlers use request-scoped business calls and
+work independently of the existing Dashboard page bridge.
+
 For bounded plugin background work, see [managed attempts and polling](docs/tasks.md).
 
 Workers run with `python -m toolframe_sdk.worker --entrypoint package.module:plugin`.
@@ -97,3 +104,6 @@ For PostgreSQL migration variants and generated identifiers in SDK 0.4, see
 [portable plugin storage](docs/storage.md).
 
 For development hooks and contribution rules, see [Contributing](CONTRIBUTING.md).
+
+Template distributions can use [optional authoring helpers](docs/authoring.md) to
+render package identities and preserve licenses without runtime provider imports.

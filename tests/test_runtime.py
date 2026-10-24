@@ -71,6 +71,24 @@ def context(peer):
     return runtime
 
 
+@pytest.mark.parametrize("phase", ["complete", "authorize"])
+async def test_resource_admission_transports_phase_without_granting_local_authority(
+    phase,
+):
+    class Peer:
+        async def request(self, method, params):
+            assert method == "resource.admit"
+            assert params["phase"] == phase
+            assert params["access_context"] == "opaque"
+            return {"authorized": True}
+
+    runtime = context(Peer())
+    options = {} if phase == "complete" else {"phase": phase}
+    assert await runtime.resource_admit(
+        "example:main", "save", epoch="e", access_context="opaque", **options
+    ) == {"authorized": True}
+
+
 @pytest.mark.parametrize(
     "value",
     [

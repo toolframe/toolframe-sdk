@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import re
 from pathlib import PurePosixPath
 from typing import Any, Literal
 
@@ -132,7 +133,7 @@ class Requirement(Contract):
 
 class Resource(Contract):
     id: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
-    kind: Literal["dashboard.page", "mcp.tool", "llms.document"]
+    kind: Literal["dashboard.page", "mcp.tool", "llms.document", "web.app"]
     title: str = ""
     required_scopes: tuple[str, ...] = ()
     data: dict[str, Any] = Field(default_factory=dict)
@@ -142,6 +143,14 @@ class Resource(Contract):
         if self.kind == "dashboard.page":
             if ":" not in self.data.get("entrypoint", ""):
                 raise ValueError("Page requires a module:render entrypoint")
+        elif self.kind == "web.app":
+            from .web import WebResourceData
+
+            if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", self.id):
+                raise ValueError(
+                    "Web resource id must use lowercase letters, digits and hyphens"
+                )
+            WebResourceData.model_validate(self.data)
         elif self.kind == "mcp.tool":
             if not self.data.get("service") or not self.data.get("method"):
                 raise ValueError("Tool requires a service and method")
@@ -211,6 +220,7 @@ class PluginDefinition(Contract):
             "sql",
             "object-store",
             "dashboard",
+            "web",
             "mcp",
             "llms",
             "auth",

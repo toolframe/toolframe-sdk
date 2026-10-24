@@ -30,11 +30,13 @@ class RuntimeContext:
         config=None,
         state_directory=None,
         private_secrets=None,
+        endpoints=None,
     ):
         self.peer, self.plugin_id, self.generation = peer, plugin_id, generation
         self.config = config or {}
         self.state_directory = state_directory
         self.private_secrets = private_secrets or {}
+        self.endpoints = endpoints or {}
         tracing = getattr(peer, "tracing", None)
         level = (
             min(logging.INFO, tracing.logs.handler.level)
@@ -67,6 +69,32 @@ class RuntimeContext:
                 "chain": info.get("chain", []),
             },
             timeout=remaining,
+        )
+
+    async def resource_admit(
+        self,
+        key,
+        route,
+        *,
+        epoch,
+        access_context,
+        csrf="",
+        revision="",
+        asset=None,
+        phase="complete",
+    ):
+        return await self.peer.request(
+            "resource.admit",
+            {
+                "key": key,
+                "route": route,
+                "epoch": epoch,
+                "access_context": access_context,
+                "csrf": csrf,
+                "revision": revision,
+                "asset": asset,
+                "phase": phase,
+            },
         )
 
     async def resource_call(
