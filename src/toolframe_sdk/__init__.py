@@ -24,8 +24,9 @@ from .logging import ContextLogger
 from .object_store import ObjectStoreClient
 from .page import PageContext
 from .runtime import Plugin, RuntimeContext, SqlClient, call_context
+from .web import WebApp, WebContext, WebRequest, WebResponse, WebRoute, WebUpload
 
-__version__ = "0.4.0"
+__version__ = "0.4.0+web.1"
 __all__ = [
     "MAX_FRAME_BYTES",
     "PROTOCOL_VERSION",
@@ -48,6 +49,12 @@ __all__ = [
     "ServiceSpec",
     "SqlClient",
     "StoreSchema",
+    "WebApp",
+    "WebContext",
+    "WebRequest",
+    "WebResponse",
+    "WebRoute",
+    "WebUpload",
     "call_context",
     "digest",
     "load_object",
