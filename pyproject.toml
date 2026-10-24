@@ -23,7 +23,7 @@ Issues = "https://github.com/toolframe/toolframe-sdk/issues"
 tracing = ["opentelemetry-sdk>=1.44,<2", "opentelemetry-exporter-otlp-proto-http>=1.44,<2"]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.12,<1", "opentelemetry-sdk>=1.44,<2", "opentelemetry-exporter-otlp-proto-http>=1.44,<2"]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.12,<1", "tomlkit>=0.13,<1", "opentelemetry-sdk>=1.44,<2", "opentelemetry-exporter-otlp-proto-http>=1.44,<2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

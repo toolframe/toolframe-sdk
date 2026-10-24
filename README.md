@@ -104,3 +104,6 @@ For PostgreSQL migration variants and generated identifiers in SDK 0.4, see
 [portable plugin storage](docs/storage.md).
 
 For development hooks and contribution rules, see [Contributing](CONTRIBUTING.md).
+
+Template distributions can use [optional authoring helpers](docs/authoring.md) to
+render package identities and preserve licenses without runtime provider imports.
