@@ -9,11 +9,11 @@ it imports neither core nor Streamlit/FastMCP.
 Use Python 3.14 or newer:
 
 ```sh
-python -m pip install --find-links /path/to/wheelhouse 'toolframe-sdk==0.4.1'
+python -m pip install 'toolframe-sdk==0.4.1'
 ```
 
-The Web contract build requires the supplied local wheelhouse. Its public-version
-compatibility remains SDK 0.4.0; changed consumers select the exact local build.
+SDK 0.4.1 adds the Web presentation contracts while retaining the SDK 0.4
+worker protocol and existing provider contracts.
 
 The SDK is a library for plugin authors. To run an application, install the
 [native Toolframe CLI](https://github.com/toolframe/toolframe-core#readme).
