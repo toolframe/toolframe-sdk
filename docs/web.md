@@ -81,6 +81,15 @@ CSP capabilities and optional SPA fallback. `resource_admit` binds a request to
 that catalog before a handler executes; `resource_call` checks it again at each
 business call. Core selects the public mount and generation.
 
+Provider transports may call `resource_admit(..., phase="authorize")` before
+decoding an unsafe request body. Core checks identity, resource, route, method
+and scopes and returns only `{"authorized": True}`. This phase cannot authorize
+`resource_call`. The default `phase="complete"` rechecks those permissions and
+validates CSRF/revision before granting handler admission. The returned
+presentation permissions come from the same principal used for that admission.
+Use the ASGI decoded path as a path, not as a complete URL; gateway forwarding
+encodes its segments and carries the query separately.
+
 Assets use `/_tf/assets/<digest>/<logical-path>` beneath the selected app mount.
 Only declared assets may be addressed. Relative imports preserve their graph;
 there is no framework global to all apps. Inherited assets use the current
@@ -94,3 +103,6 @@ Default CSP accepts sealed same-origin resources. Apps can request supported
 capabilities; wildcard and external origins are rejected. Explicit eval/WASM or
 blob capabilities apply only to the declaring app. Trusted same-origin apps are
 not isolated security principals.
+Worker execution uses the script response's CSP. The Web provider derives that
+policy from the current app catalog and revalidates public script caches when
+capabilities change; active HTML/SVG asset responses remain sandboxed.

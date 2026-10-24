@@ -72,7 +72,16 @@ class RuntimeContext:
         )
 
     async def resource_admit(
-        self, key, route, *, epoch, access_context, csrf="", revision="", asset=None
+        self,
+        key,
+        route,
+        *,
+        epoch,
+        access_context,
+        csrf="",
+        revision="",
+        asset=None,
+        phase="complete",
     ):
         return await self.peer.request(
             "resource.admit",
@@ -84,6 +93,7 @@ class RuntimeContext:
                 "csrf": csrf,
                 "revision": revision,
                 "asset": asset,
+                "phase": phase,
             },
         )
 
