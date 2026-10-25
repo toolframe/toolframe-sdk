@@ -90,7 +90,7 @@ Log export is separately opt-in through `OTEL_LOGS_EXPORTER=otlp`.
 
 Install development dependencies with `uv sync --group dev`, then run `uv run pytest`.
 
-For the isolated CI checks and manual TestPyPI/PyPI publishing setup, see
+For the isolated CI checks and manual PyPI publishing setup, see
 [CI and publishing](docs/ci.md). Run `bash scripts/validate.sh` to lint, test,
 build and verify a fresh wheel installation locally.
 
