@@ -35,6 +35,19 @@ uv sync --locked --group dev --no-sources --python "$ci_python"
 
 # With neither --wheel nor --sdist, uv builds an sdist then a wheel from it.
 uv build --no-sources --python "$ci_python" --out-dir "$work_dir/dist"
+# Build the frozen 0.4 consumer once. Both SDKs receive the exact same wheel.
+uv build --no-sources --wheel --out-dir "$work_dir/baseline-dist" tests/fixtures
+for endpoint in minimum candidate; do
+  uv venv --python "$ci_python" "$work_dir/baseline-$endpoint"
+  sdk_requirement=('toolframe-sdk==0.4.0')
+  if [[ "$endpoint" == candidate ]]; then
+    sdk_requirement=("$work_dir/dist/"*.whl)
+  fi
+  uv pip install --python "$work_dir/baseline-$endpoint/bin/python" \
+    "$work_dir/baseline-dist/"*.whl "${sdk_requirement[@]}"
+  "$work_dir/baseline-$endpoint/bin/python" -I scripts/check_compatibility_baseline.py \
+    "$work_dir/baseline-dist/"*.whl
+done
 uv venv --python "$ci_python" "$work_dir/packaging"
 uv pip install --python "$work_dir/packaging/bin/python" 'twine==7.0.0'
 "$work_dir/packaging/bin/python" -m twine check --strict "$work_dir/dist/"*

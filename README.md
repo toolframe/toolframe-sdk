@@ -15,6 +15,10 @@ python -m pip install 'toolframe-sdk==0.4.1'
 SDK 0.4.1 adds the Web presentation contracts while retaining the SDK 0.4
 worker protocol and existing provider contracts.
 
+Plugins declare a minimum SDK and allow compatible 0.x updates. See the
+[compatibility policy and verification](docs/compatibility.md) for dependency
+ranges, public API guarantees and minimum/latest SDK checks.
+
 The SDK is a library for plugin authors. To run an application, install the
 [native Toolframe CLI](https://github.com/toolframe/toolframe-core#readme).
 `toolframe --home APP plugin new my-plugin` creates a buildable plugin that uses
