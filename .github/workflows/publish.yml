@@ -2,15 +2,6 @@ name: Publish Python package
 
 on:
   workflow_dispatch:
-    inputs:
-      repository:
-        description: Package index
-        type: choice
-        required: true
-        default: testpypi
-        options:
-          - testpypi
-          - pypi
 
 permissions:
   contents: read
@@ -39,17 +30,17 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
-    name: Publish to ${{ inputs.repository }}
+    name: Publish to PyPI
     needs: [release-tag, validate]
-    if: github.ref_type == 'tag' && (inputs.repository == 'testpypi' || inputs.repository == 'pypi')
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     concurrency:
-      group: sdk-publish-${{ inputs.repository }}
+      group: sdk-publish-pypi
       cancel-in-progress: false
     environment:
-      name: ${{ inputs.repository }}
-      url: ${{ inputs.repository == 'testpypi' && 'https://test.pypi.org/p/toolframe-sdk' || 'https://pypi.org/p/toolframe-sdk' }}
+      name: pypi
+      url: https://pypi.org/p/toolframe-sdk
     permissions:
       contents: read
       id-token: write
@@ -63,4 +54,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: dist/
-          repository-url: ${{ inputs.repository == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
+          repository-url: https://upload.pypi.org/legacy/
