@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "toolframe-sdk04-compat-fixture"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = ["toolframe-sdk>=0.4.0,<1"]
+
+[project.entry-points."toolframe.plugins"]
+compat-echo = "sdk04_plugin:plugin"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["sdk04_plugin.py"]

@@ -1,0 +1,41 @@
+name: Check plugin SDK compatibility
+description: Install a plugin wheel with its minimum or latest supported SDK and run its tests.
+inputs:
+  mode:
+    description: SDK selection (minimum or latest)
+    required: true
+  project:
+    description: Path to the plugin checkout
+    default: .
+  output:
+    description: New directory for environments and evidence
+    required: true
+  wheel:
+    description: Previously built plugin wheel shared by SDK endpoints
+    default: ''
+  dependency-wheel:
+    description: Optional explicit test dependency wheel
+    default: ''
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        COMPAT_ACTION_PATH: ${{ github.action_path }}
+        COMPAT_MODE: ${{ inputs.mode }}
+        COMPAT_PROJECT: ${{ inputs.project }}
+        COMPAT_OUTPUT: ${{ inputs.output }}
+        COMPAT_WHEEL: ${{ inputs.wheel }}
+        COMPAT_DEPENDENCY_WHEEL: ${{ inputs.dependency-wheel }}
+      run: |
+        args=()
+        if [[ -n "$COMPAT_WHEEL" ]]; then
+          args+=(--wheel "$COMPAT_WHEEL")
+        fi
+        if [[ -n "$COMPAT_DEPENDENCY_WHEEL" ]]; then
+          args+=(--dependency-wheel "$COMPAT_DEPENDENCY_WHEEL")
+        fi
+        uv run --no-project --with 'packaging>=25' python \
+          "$COMPAT_ACTION_PATH/../../../scripts/check_plugin_compatibility.py" \
+          --project "$COMPAT_PROJECT" --mode "$COMPAT_MODE" \
+          --output "$COMPAT_OUTPUT" "${args[@]}"
